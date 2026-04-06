@@ -24,8 +24,9 @@
 }
 
 .brand-icon {
-  color: var(--accent);
-  font-size: 18px;
+  height: 32px;
+  width: 32px;
+  object-fit: contain;
 }
 
 .navbar-links {

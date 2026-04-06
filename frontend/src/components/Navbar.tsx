@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import './Navbar.css'
+import brandLogo from '../assets/Brighthut-logo.png'
 
 export default function Navbar() {
   const navigate = useNavigate()
@@ -7,7 +8,7 @@ export default function Navbar() {
   return (
     <nav className="navbar">
       <Link to="/" className="navbar-brand">
-        <span className="brand-icon">✦</span>
+        <img src={brandLogo} alt="BrightHut logo" className="brand-icon" />
         BrightHut
       </Link>
       <div className="navbar-links">

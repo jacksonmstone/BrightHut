@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import './AuthPage.css'
+import brandLogo from '../assets/Brighthut-logo.png'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -15,7 +16,7 @@ export default function Login() {
     <main className="auth-page">
       <div className="auth-card">
         <div className="auth-header">
-          <span className="auth-icon">✦</span>
+          <img src={brandLogo} alt="BrightHut logo" className="auth-icon" />
           <h1>Welcome back</h1>
           <p>Sign in to your BrightHut account</p>
         </div>
@@ -45,7 +46,7 @@ export default function Login() {
           <button type="submit" className="auth-submit">Sign In</button>
         </form>
         <p className="auth-footer">
-          Don't have an account? <Link to="/">Return home</Link>
+          Don't have an account? <Link to="/create-account">Create one</Link>
         </p>
       </div>
     </main>
