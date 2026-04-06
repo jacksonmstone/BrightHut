@@ -87,11 +87,11 @@ export default function SocialPortal() {
                 <span className="post-date">{String(p.created_at ?? '—').split('T')[0]}</span>
               </div>
               <div className="post-card-body">
-                {p.caption && <p className="post-caption">{String(p.caption).slice(0, 120)}{String(p.caption).length > 120 ? '...' : ''}</p>}
+                {!!p.caption && <p className="post-caption">{String(p.caption).slice(0, 120)}{String(p.caption).length > 120 ? '...' : ''}</p>}
                 <div className="post-meta">
                   <span className="meta-tag">{String(p.post_type ?? '—')}</span>
                   <span className="meta-tag">{String(p.content_topic ?? '—')}</span>
-                  {p.is_boosted && <span className="meta-tag boosted">Boosted</span>}
+                  {!!p.is_boosted && <span className="meta-tag boosted">Boosted</span>}
                 </div>
                 <div className="post-stats">
                   <span>👍 {Number(p.likes ?? 0).toLocaleString()}</span>

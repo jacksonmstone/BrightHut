@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import './CreateAccount.css'
 
 type SupporterType = 'MonetaryDonor' | 'InKindDonor' | 'Volunteer' | 'SkillsContributor' | 'SocialMediaAdvocate' | 'PartnerOrganization' | null
@@ -29,7 +29,6 @@ const SUPPORTER_TYPES = [
 ]
 
 export default function CreateAccount() {
-  const navigate = useNavigate()
   const [step, setStep] = useState<'role-selection' | 'account-details'>('role-selection')
   const [formData, setFormData] = useState<FormData>({
     supporterType: null,
