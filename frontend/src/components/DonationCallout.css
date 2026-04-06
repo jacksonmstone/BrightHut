@@ -259,9 +259,15 @@
   transition: background 0.2s, transform 0.15s;
 }
 
-.donation-continue:hover {
+.donation-continue:hover:not(:disabled) {
   background: var(--primary-dark);
   transform: translateY(-1px);
+}
+
+.donation-continue:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .donation-disclaimer {

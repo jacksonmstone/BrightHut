@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import './CreateAccount.css'
 
 type SupporterType = 'MonetaryDonor' | 'InKindDonor' | 'Volunteer' | 'SkillsContributor' | 'SocialMediaAdvocate' | 'PartnerOrganization' | null
@@ -28,20 +28,56 @@ const SUPPORTER_TYPES = [
   { id: 'PartnerOrganization', label: 'Partner Organization', icon: '🏢' },
 ]
 
+type CreateAccountLocationState = {
+  fromDonation?: boolean
+  prefillFirstName?: string
+  prefillLastName?: string
+  suggestSupporterType?: string
+}
+
+const emptyFormData: FormData = {
+  supporterType: null,
+  firstName: '',
+  lastName: '',
+  organizationName: '',
+  email: '',
+  phone: '',
+  country: '',
+  region: '',
+  relationshipType: '',
+  acquisitionChannel: '',
+}
+
+function initialAccountState(state: unknown): {
+  step: 'role-selection' | 'account-details'
+  formData: FormData
+} {
+  const s = state as CreateAccountLocationState | null
+  if (!s?.fromDonation) {
+    return { step: 'role-selection', formData: { ...emptyFormData } }
+  }
+  const role = (s.suggestSupporterType as SupporterType) ?? 'MonetaryDonor'
+  if (role === 'PartnerOrganization' || role === null) {
+    return { step: 'role-selection', formData: { ...emptyFormData } }
+  }
+  return {
+    step: 'account-details',
+    formData: {
+      ...emptyFormData,
+      supporterType: role,
+      firstName: s.prefillFirstName?.trim() ?? '',
+      lastName: s.prefillLastName?.trim() ?? '',
+    },
+  }
+}
+
 export default function CreateAccount() {
-  const [step, setStep] = useState<'role-selection' | 'account-details'>('role-selection')
-  const [formData, setFormData] = useState<FormData>({
-    supporterType: null,
-    firstName: '',
-    lastName: '',
-    organizationName: '',
-    email: '',
-    phone: '',
-    country: '',
-    region: '',
-    relationshipType: '',
-    acquisitionChannel: '',
-  })
+  const location = useLocation()
+  const initial = initialAccountState(location.state)
+  const [step, setStep] = useState<'role-selection' | 'account-details'>(initial.step)
+  const [formData, setFormData] = useState<FormData>(initial.formData)
+
+  const fromDonationFlow = Boolean((location.state as CreateAccountLocationState | null)?.fromDonation)
 
   const isOrganization = formData.supporterType === 'PartnerOrganization'
 
@@ -103,6 +139,12 @@ export default function CreateAccount() {
         <div className="create-account-header">
           <button className="back-button" onClick={handleBack}>← Back</button>
           <h1>Create Your Account</h1>
+          {fromDonationFlow ? (
+            <p className="create-account-donation-note">
+              You’re finishing setup after your gift. We’ve set your role to{' '}
+              <strong>Monetary Donor</strong> and prefilled your name—add contact details below.
+            </p>
+          ) : null}
           <p>
             Role: <strong>{SUPPORTER_TYPES.find(t => t.id === formData.supporterType)?.label}</strong>
           </p>

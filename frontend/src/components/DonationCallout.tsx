@@ -73,7 +73,8 @@ export default function DonationCallout() {
     (!Number.isNaN(customAmount) && customAmount > 0 ? customAmount : null)
 
   const handleContinue = () => {
-    navigate('/donors', {
+    if (effectiveAmount == null) return
+    navigate('/donate/payment', {
       state: {
         amountUsd: effectiveAmount,
         note: showNote ? note.trim() || undefined : undefined,
@@ -202,12 +203,13 @@ export default function DonationCallout() {
             type="button"
             className="donation-continue"
             onClick={handleContinue}
+            disabled={effectiveAmount == null}
           >
-            Continue
+            Continue to payment
           </button>
           <p className="donation-disclaimer">
-            You will finish your gift on the Donors portal. Every contribution, large or small,
-            changes a life.
+            Next you’ll confirm who is giving (and we’ll check our supporter list for individuals).
+            Every contribution, large or small, changes a life.
           </p>
         </div>
       </div>

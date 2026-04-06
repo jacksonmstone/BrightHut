@@ -47,6 +47,17 @@
   margin: 0 0 8px 0;
 }
 
+.create-account-donation-note {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-muted, #718096);
+  margin: 0 0 16px !important;
+  padding: 12px 14px;
+  background: var(--primary-light, #eaeff8);
+  border-radius: 8px;
+  text-align: left;
+}
+
 .create-account-header p {
   font-size: 15px;
   color: var(--text-muted, #666);
