@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import './Home.css'
 
 const portals = [
@@ -84,7 +84,9 @@ export default function Home() {
       </section>
 
       <footer className="footer">
-        <p>© 2025 BrightHut. All rights reserved.</p>
+        <p>
+          © 2025 BrightHut. All rights reserved. · <Link to="/privacy">Privacy Policy</Link>
+        </p>
       </footer>
     </main>
   )

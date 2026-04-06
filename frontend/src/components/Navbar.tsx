@@ -13,6 +13,7 @@ export default function Navbar() {
       </Link>
       <div className="navbar-links">
         <Link to="/about" className="nav-link">About Us</Link>
+        <Link to="/privacy" className="nav-link">Privacy</Link>
         <button className="nav-btn-login" onClick={() => navigate('/login')}>
           Login
         </button>
