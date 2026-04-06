@@ -2,12 +2,12 @@
 .DS_Store
 Thumbs.db
 Desktop.ini
+.claude/
 
 # VS / VS Code / Rider
 .vs/
 .vscode/*
 !.vscode/extensions.json
-!.vscode/settings.json
 !.vscode/launch.json
 !.vscode/tasks.json
 *.user
