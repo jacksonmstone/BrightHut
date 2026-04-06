@@ -59,8 +59,8 @@ export default function DonorsPortal() {
             </div>
             <div className="donor-card-body">
               <div className="donor-field"><span className="field-label">Channel</span><span>{String(r.channel_source ?? '—')}</span></div>
-              {r.amount && <div className="donor-field"><span className="field-label">Amount</span><span>₱{Number(r.amount).toLocaleString()}</span></div>}
-              {r.campaign_name && <div className="donor-field"><span className="field-label">Campaign</span><span>{String(r.campaign_name)}</span></div>}
+              {!!r.amount && <div className="donor-field"><span className="field-label">Amount</span><span>₱{Number(r.amount).toLocaleString()}</span></div>}
+              {!!r.campaign_name && <div className="donor-field"><span className="field-label">Campaign</span><span>{String(r.campaign_name)}</span></div>}
               <div className="donor-field"><span className="field-label">Recurring</span><span>{r.is_recurring ? 'Yes' : 'No'}</span></div>
             </div>
           </div>
@@ -75,8 +75,8 @@ export default function DonorsPortal() {
             <div className="donor-card-body">
               <div className="donor-field"><span className="field-label">Type</span><span>{String(r.supporter_type ?? '—')}</span></div>
               <div className="donor-field"><span className="field-label">Relationship</span><span>{String(r.relationship_type ?? '—')}</span></div>
-              {r.first_donation_date && <div className="donor-field"><span className="field-label">First Donation</span><span>{String(r.first_donation_date)}</span></div>}
-              {r.acquisition_channel && <div className="donor-field"><span className="field-label">Source</span><span>{String(r.acquisition_channel)}</span></div>}
+              {!!r.first_donation_date && <div className="donor-field"><span className="field-label">First Donation</span><span>{String(r.first_donation_date)}</span></div>}
+              {!!r.acquisition_channel && <div className="donor-field"><span className="field-label">Source</span><span>{String(r.acquisition_channel)}</span></div>}
             </div>
           </div>
         )
@@ -91,7 +91,7 @@ export default function DonorsPortal() {
               <div className="donor-field"><span className="field-label">Amount</span><span>₱{Number(r.amount_allocated ?? 0).toLocaleString()}</span></div>
               <div className="donor-field"><span className="field-label">Donation ID</span><span>#{String(r.donation_id ?? '—')}</span></div>
               <div className="donor-field"><span className="field-label">Safehouse ID</span><span>#{String(r.safehouse_id ?? '—')}</span></div>
-              {r.allocation_notes && <div className="donor-field"><span className="field-label">Notes</span><span>{String(r.allocation_notes).slice(0, 60)}</span></div>}
+              {!!r.allocation_notes && <div className="donor-field"><span className="field-label">Notes</span><span>{String(r.allocation_notes).slice(0, 60)}</span></div>}
             </div>
           </div>
         )
