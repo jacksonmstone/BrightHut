@@ -214,3 +214,9 @@
 .create-account-footer a:hover {
   color: var(--primary-dark, #6a0abd);
 }
+
+.form-error {
+  color: #991b1b;
+  font-size: 0.85rem;
+  margin-top: -0.25rem;
+}

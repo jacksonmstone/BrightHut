@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { register } from '../api/auth'
 import './CreateAccount.css'
 
 type SupporterType = 'MonetaryDonor' | 'InKindDonor' | 'Volunteer' | 'SkillsContributor' | 'SocialMediaAdvocate' | 'PartnerOrganization' | null
@@ -12,6 +13,8 @@ interface FormData {
   lastName: string
   organizationName: string
   email: string
+  password: string
+  confirmPassword: string
   phone: string
   country: string
   region: string
@@ -41,6 +44,8 @@ const emptyFormData: FormData = {
   lastName: '',
   organizationName: '',
   email: '',
+  password: '',
+  confirmPassword: '',
   phone: '',
   country: '',
   region: '',
@@ -73,9 +78,13 @@ function initialAccountState(state: unknown): {
 
 export default function CreateAccount() {
   const location = useLocation()
+  const navigate = useNavigate()
   const initial = initialAccountState(location.state)
   const [step, setStep] = useState<'role-selection' | 'account-details'>(initial.step)
   const [formData, setFormData] = useState<FormData>(initial.formData)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
+  const [passwordError, setPasswordError] = useState('')
 
   const fromDonationFlow = Boolean((location.state as CreateAccountLocationState | null)?.fromDonation)
 
@@ -91,11 +100,42 @@ export default function CreateAccount() {
     setFormData({ ...formData, [name]: value })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // TODO: connect to backend
-    console.log('Form data:', formData)
-    alert('Account creation in progress - backend connection coming soon!')
+    if (formData.password !== formData.confirmPassword) {
+      setPasswordError('Passwords do not match.')
+      return
+    }
+    if (formData.password.length < 8) {
+      setPasswordError('Password must be at least 8 characters.')
+      return
+    }
+    setPasswordError('')
+    setSubmitError('')
+    setSubmitting(true)
+    try {
+      const res = await register({
+        email: formData.email,
+        password: formData.password,
+        firstName: formData.firstName || undefined,
+        lastName: formData.lastName || undefined,
+        organizationName: formData.organizationName || undefined,
+        phone: formData.phone || undefined,
+        country: formData.country || undefined,
+        region: formData.region || undefined,
+        relationshipType: formData.relationshipType || undefined,
+        acquisitionChannel: formData.acquisitionChannel || undefined,
+        supporterType: formData.supporterType || undefined,
+      })
+      localStorage.setItem('token', res.token)
+      localStorage.setItem('role', res.role)
+      localStorage.setItem('email', res.email)
+      navigate('/')
+    } catch (err: unknown) {
+      setSubmitError(err instanceof Error ? err.message : 'Registration failed.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const handleBack = () => {
@@ -216,6 +256,33 @@ export default function CreateAccount() {
             </label>
             
             <label className="form-label">
+              Password
+              <input
+                type="password"
+                name="password"
+                className="form-input"
+                value={formData.password}
+                onChange={handleInputChange}
+                placeholder="At least 8 characters"
+                required
+              />
+            </label>
+
+            <label className="form-label">
+              Confirm Password
+              <input
+                type="password"
+                name="confirmPassword"
+                className="form-input"
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                placeholder="Re-enter your password"
+                required
+              />
+            </label>
+            {passwordError && <p className="form-error">{passwordError}</p>}
+
+            <label className="form-label">
               Phone Number
               <input
                 type="tel"
@@ -298,7 +365,10 @@ export default function CreateAccount() {
             </label>
           </fieldset>
 
-          <button type="submit" className="create-account-submit">Create Account</button>
+          {submitError && <p className="form-error">{submitError}</p>}
+          <button type="submit" className="create-account-submit" disabled={submitting}>
+            {submitting ? 'Creating Account...' : 'Create Account'}
+          </button>
         </form>
 
         <p className="create-account-footer">
