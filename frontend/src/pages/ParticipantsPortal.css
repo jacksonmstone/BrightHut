@@ -1,0 +1,146 @@
+.participants-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.participants-header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.participants-header h1 {
+  font-size: 1.8rem;
+}
+
+.subtitle {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin-top: 0.25rem;
+}
+
+.back-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.9rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.back-btn:hover {
+  background: var(--bg);
+}
+
+.participants-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.search-input {
+  flex: 1;
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  font-family: var(--sans);
+  background: var(--bg-white);
+  color: var(--text);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.count {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.residents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.resident-card {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.resident-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--primary-light);
+  border-bottom: 1px solid var(--border);
+}
+
+.resident-code {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--primary-dark);
+}
+
+.status-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+}
+
+.status-active {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-closed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-transferred {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.resident-body {
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.resident-field {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.88rem;
+  gap: 0.5rem;
+}
+
+.field-label {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.state-msg {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 2rem;
+}
+
+.state-msg.error {
+  color: var(--secondary);
+}
