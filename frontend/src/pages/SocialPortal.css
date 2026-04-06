@@ -5,18 +5,22 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  position: relative;
 }
 
 .social-header {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  justify-content: center;
 }
 
 .social-header h1 { font-size: 1.8rem; }
 .subtitle { color: var(--text-muted); font-size: 0.95rem; margin-top: 0.25rem; }
 
 .back-btn {
+  position: absolute;
+  top: 2rem;
+  left: 1.5rem;
   background: none;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -28,9 +32,10 @@
 .back-btn:hover { background: var(--bg); }
 
 .social-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
+  justify-content: center;
 }
 
 .stat-card {
@@ -159,3 +164,16 @@
 
 .state-msg { text-align: center; color: var(--text-muted); padding: 2rem; }
 .state-msg.error { color: var(--secondary); }
+
+.load-more-wrap { display: flex; justify-content: center; padding: 1rem 0; }
+
+.load-more-btn {
+  background: none;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 1.5rem;
+  color: var(--primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.load-more-btn:hover { background: var(--primary-light); }

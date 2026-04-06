@@ -12,6 +12,7 @@ export default function SocialPortal() {
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [platformFilter, setPlatformFilter] = useState('All')
+  const [visible, setVisible] = useState(6)
 
   useEffect(() => {
     getSocialMediaPosts()
@@ -58,7 +59,7 @@ export default function SocialPortal() {
             <button
               key={p}
               className={`platform-btn ${platformFilter === p ? 'active' : ''}`}
-              onClick={() => setPlatformFilter(p)}
+              onClick={() => { setPlatformFilter(p); setVisible(6) }}
             >
               {p}
             </button>
@@ -69,7 +70,7 @@ export default function SocialPortal() {
           type="text"
           placeholder="Search by caption, type, topic..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); setVisible(6) }}
         />
         <span className="count">{filtered.length} post{filtered.length !== 1 ? 's' : ''}</span>
       </div>
@@ -79,7 +80,7 @@ export default function SocialPortal() {
 
       {!loading && !error && (
         <div className="posts-grid">
-          {filtered.map((p, i) => (
+          {filtered.slice(0, visible).map((p, i) => (
             <div key={i} className="post-card">
               <div className="post-card-header">
                 <span className={`platform-badge platform-${String(p.platform ?? '').toLowerCase()}`}>{String(p.platform ?? '—')}</span>
@@ -102,6 +103,13 @@ export default function SocialPortal() {
             </div>
           ))}
           {filtered.length === 0 && <p className="state-msg">No posts match your search.</p>}
+        </div>
+      )}
+      {!loading && !error && visible < filtered.length && (
+        <div className="load-more-wrap">
+          <button className="load-more-btn" onClick={() => setVisible((v) => v + 12)}>
+            See 12 more ({filtered.length - visible} remaining)
+          </button>
         </div>
       )}
     </main>

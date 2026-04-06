@@ -23,6 +23,7 @@ export default function DonorsPortal() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [visible, setVisible] = useState(6)
 
   useEffect(() => {
     Promise.all([
@@ -134,7 +135,7 @@ export default function DonorsPortal() {
           <button
             key={t.id}
             className={`tab-btn ${tab === t.id ? 'active' : ''}`}
-            onClick={() => { setTab(t.id); setSearch('') }}
+            onClick={() => { setTab(t.id); setSearch(''); setVisible(6) }}
           >
             {t.label}
             <span className="tab-count">{data[t.id].length}</span>
@@ -148,7 +149,7 @@ export default function DonorsPortal() {
           type="text"
           placeholder="Search across all fields..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); setVisible(6) }}
         />
         <span className="count">{filtered.length} record{filtered.length !== 1 ? 's' : ''}</span>
       </div>
@@ -158,8 +159,15 @@ export default function DonorsPortal() {
 
       {!loading && !error && (
         <div className="donors-grid">
-          {filtered.map((r, i) => renderCard(r, i))}
+          {filtered.slice(0, visible).map((r, i) => renderCard(r, i))}
           {filtered.length === 0 && <p className="state-msg">No records match your search.</p>}
+        </div>
+      )}
+      {!loading && !error && visible < filtered.length && (
+        <div className="load-more-wrap">
+          <button className="load-more-btn" onClick={() => setVisible((v) => v + 12)}>
+            See 12 more ({filtered.length - visible} remaining)
+          </button>
         </div>
       )}
     </main>
