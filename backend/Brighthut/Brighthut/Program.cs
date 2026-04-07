@@ -7,35 +7,56 @@ var builder = WebApplication.CreateBuilder(args);
 
 var jwtKey = Environment.GetEnvironmentVariable("JWT__KEY")
     ?? builder.Configuration["Jwt:Key"];
-if (string.IsNullOrWhiteSpace(jwtKey)
+var jwtKeyLooksPlaceholder =
+    string.IsNullOrWhiteSpace(jwtKey)
     || jwtKey.Contains("ChangeInProd", StringComparison.OrdinalIgnoreCase)
-    || jwtKey.Contains("REPLACE_ME", StringComparison.OrdinalIgnoreCase))
+    || jwtKey.Contains("REPLACE_ME", StringComparison.OrdinalIgnoreCase);
+var authEnabled = false;
+
+if (jwtKeyLooksPlaceholder)
 {
-    throw new InvalidOperationException(
-        "JWT key is not configured securely. Set environment variable JWT__KEY to a strong secret.");
+    if (builder.Environment.IsDevelopment())
+    {
+        // Dev-only key so local `dotnet run` works out of the box.
+        jwtKey = "DEV_ONLY__REPLACE_WITH_STRONG_KEY_IN_PROD__0123456789";
+        builder.Configuration["Jwt:Key"] = jwtKey;
+        authEnabled = true;
+    }
+    else
+    {
+        throw new InvalidOperationException(
+            "JWT key is not configured securely. Set environment variable JWT__KEY to a strong secret.");
+    }
 }
-builder.Configuration["Jwt:Key"] = jwtKey;
+else
+{
+    builder.Configuration["Jwt:Key"] = jwtKey;
+    authEnabled = true;
+}
 
 builder.Services.AddSingleton<SqliteDataService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
+if (authEnabled)
+{
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
         {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-        };
-    });
-builder.Services.AddAuthorization();
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                ValidAudience = builder.Configuration["Jwt:Audience"],
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            };
+        });
+    builder.Services.AddAuthorization();
+}
 
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
     ?? Array.Empty<string>();
@@ -75,8 +96,11 @@ app.Use(async (context, next) =>
     await next();
 });
 
-app.UseAuthentication();
-app.UseAuthorization();
+if (authEnabled)
+{
+    app.UseAuthentication();
+    app.UseAuthorization();
+}
 
 app.MapControllers();
 
