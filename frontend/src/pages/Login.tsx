@@ -20,6 +20,7 @@ export default function Login() {
       localStorage.setItem('token', res.token)
       localStorage.setItem('role', res.role)
       localStorage.setItem('email', res.email)
+      window.dispatchEvent(new Event('auth-change'))
       navigate(res.role === 'staff' ? '/participants' : '/donors')
     } catch (err: unknown) {
       setFormError(err instanceof Error ? err.message : 'Login failed.')

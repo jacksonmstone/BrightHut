@@ -130,6 +130,7 @@ export default function CreateAccount() {
       localStorage.setItem('token', res.token)
       localStorage.setItem('role', res.role)
       localStorage.setItem('email', res.email)
+      window.dispatchEvent(new Event('auth-change'))
       navigate('/')
     } catch (err: unknown) {
       setSubmitError(err instanceof Error ? err.message : 'Registration failed.')

@@ -17,6 +17,8 @@ const PRESET_AMOUNTS_USD = [25, 55, 100, 250, 500, 1000] as const
 
 export default function DonationCallout() {
   const navigate = useNavigate()
+  const loggedIn = !!localStorage.getItem('token')
+  if (loggedIn) return null
   const [selected, setSelected] = useState<number | null>(null)
   const [customRaw, setCustomRaw] = useState('')
   const [showNote, setShowNote] = useState(false)

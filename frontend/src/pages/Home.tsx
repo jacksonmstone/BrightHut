@@ -3,14 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import DonationCallout from '../components/DonationCallout'
 import './Home.css'
 
-const portals = [
-  {
-    title: 'About Us',
-    description: 'Learn about our mission, values, and the people behind BrightHut.',
-    icon: '🌿',
-    path: '/about',
-    color: 'green',
-  },
+const privatePortals = [
   {
     title: 'Social Media Portal',
     description: 'Stay connected and engage with our community across platforms.',
@@ -19,8 +12,8 @@ const portals = [
     color: 'blue',
   },
   {
-    title: 'Donors Portal',
-    description: 'Support our cause and manage your contributions with ease.',
+    title: 'My Contributions',
+    description: 'View your donation history and see the impact of your giving.',
     icon: '🤝',
     path: '/donors',
     color: 'sand',
@@ -37,6 +30,9 @@ const portals = [
 export default function Home() {
   const navigate = useNavigate()
   const location = useLocation()
+  const loggedIn = !!localStorage.getItem('token')
+  const isStaff = localStorage.getItem('role') === 'staff'
+  const portals = isStaff ? privatePortals : privatePortals.filter(p => p.path === '/donors')
 
   // Support links like /#donate
   // Keeps the grid layout fixed; scrolls to the section the user asked for.
@@ -77,26 +73,28 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="portals-section">
-        <div className="portals-header">
-          <h2>Where would you like to go?</h2>
-          <p className="portals-subtitle">Select a portal to get started</p>
-        </div>
-        <div className="portals-grid">
-          {portals.map((portal) => (
-            <button
-              key={portal.path}
-              className={`portal-card portal-card--${portal.color}`}
-              onClick={() => navigate(portal.path)}
-            >
-              <span className="portal-icon">{portal.icon}</span>
-              <h3 className="portal-title">{portal.title}</h3>
-              <p className="portal-desc">{portal.description}</p>
-              <span className="portal-arrow">→</span>
-            </button>
-          ))}
-        </div>
-      </section>
+      {loggedIn && (
+        <section className="portals-section">
+          <div className="portals-header">
+            <h2>Where would you like to go?</h2>
+            <p className="portals-subtitle">Select a portal to get started</p>
+          </div>
+          <div className="portals-grid">
+            {portals.map((portal) => (
+              <button
+                key={portal.path}
+                className={`portal-card portal-card--${portal.color}`}
+                onClick={() => navigate(portal.path)}
+              >
+                <span className="portal-icon">{portal.icon}</span>
+                <h3 className="portal-title">{portal.title}</h3>
+                <p className="portal-desc">{portal.description}</p>
+                <span className="portal-arrow">→</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       <DonationCallout />
 
