@@ -63,7 +63,13 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
         const body = await res.json().catch(() => ({}))
         throw new Error(parseApiError(body, res.status, path))
       }
-      return res.json()
+      const ct = res.headers.get('content-type') ?? ''
+      if (!ct.includes('application/json')) {
+        throw new Error(
+          `Unexpected response from API (${path}). Is the backend running and reachable? If you use the static site URL, configure the API base URL or proxy /api to your server.`,
+        )
+      }
+      return res.json() as Promise<T>
     } catch (err) {
       // Retry on network-level errors (e.g. failed to fetch / TLS / CORS/preflight).
       if (err instanceof TypeError) {

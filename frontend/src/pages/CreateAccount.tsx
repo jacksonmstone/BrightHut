@@ -85,6 +85,7 @@ export default function CreateAccount() {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [passwordError, setPasswordError] = useState('')
+  const [formError, setFormError] = useState('')
 
   const fromDonationFlow = Boolean((location.state as CreateAccountLocationState | null)?.fromDonation)
 
@@ -102,6 +103,36 @@ export default function CreateAccount() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setFormError('')
+    // Required selects / text (we use noValidate so this always runs — native HTML validation was blocking submit with no clear UI)
+    if (!formData.supporterType) {
+      setFormError('Please go back and choose how you would like to contribute.')
+      return
+    }
+    if (!formData.email.trim()) {
+      setFormError('Email is required.')
+      return
+    }
+    if (!isOrganization && (!formData.firstName.trim() || !formData.lastName.trim())) {
+      setFormError('First and last name are required.')
+      return
+    }
+    if (isOrganization && !formData.organizationName.trim()) {
+      setFormError('Organization name is required.')
+      return
+    }
+    if (!formData.country.trim()) {
+      setFormError('Country is required.')
+      return
+    }
+    if (!formData.relationshipType) {
+      setFormError('Please select a relationship type.')
+      return
+    }
+    if (!formData.acquisitionChannel) {
+      setFormError('Please tell us how you heard about BrightHut.')
+      return
+    }
     if (formData.password !== formData.confirmPassword) {
       setPasswordError('Passwords do not match.')
       return
@@ -218,7 +249,7 @@ export default function CreateAccount() {
           </p>
         </div>
 
-        <form className="create-account-form" onSubmit={handleSubmit}>
+        <form className="create-account-form" onSubmit={handleSubmit} noValidate>
           {/* Name/Organization Section */}
           <fieldset className="form-section">
             <legend>{isOrganization ? 'Organization Information' : 'Personal Information'}</legend>
@@ -393,7 +424,11 @@ export default function CreateAccount() {
             </label>
           </fieldset>
 
-          {submitError && <p className="form-error">{submitError}</p>}
+          {(formError || submitError) && (
+            <p className="form-error form-error--banner" role="alert">
+              {formError || submitError}
+            </p>
+          )}
           <button type="submit" className="create-account-submit" disabled={submitting}>
             {submitting ? 'Creating Account...' : 'Create Account'}
           </button>
