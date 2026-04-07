@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getDonations, getDonationAllocations, getInKindDonationItems } from '../api/donations'
 import { getSupporters } from '../api/supporters'
+import { insertRow } from '../api/tables'
+import FormModal from '../components/FormModal'
+import type { FieldDef } from '../components/FormModal'
+import { phpToUsd, formatUsd } from '../components/donationProgress'
 import './DonorsPortal.css'
 
 type Row = Record<string, unknown>
@@ -14,6 +18,35 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'inkind', label: 'In-Kind Items' },
 ]
 
+const SUPPORTER_FIELDS: FieldDef[] = [
+  { key: 'display_name', label: 'Display Name', type: 'text', required: true },
+  { key: 'supporter_type', label: 'Supporter Type', type: 'select', required: true, options: ['MonetaryDonor','InKindDonor','Volunteer','SkillsContributor','SocialMediaAdvocate','PartnerOrganization'] },
+  { key: 'relationship_type', label: 'Relationship Type', type: 'select', required: true, options: ['Local','International','PartnerOrganization'] },
+  { key: 'first_name', label: 'First Name', type: 'text' },
+  { key: 'last_name', label: 'Last Name', type: 'text' },
+  { key: 'organization_name', label: 'Organization Name', type: 'text' },
+  { key: 'email', label: 'Email', type: 'text' },
+  { key: 'phone', label: 'Phone', type: 'text' },
+  { key: 'region', label: 'Region', type: 'text' },
+  { key: 'country', label: 'Country', type: 'text' },
+  { key: 'status', label: 'Status', type: 'select', required: true, options: ['Active','Inactive'] },
+  { key: 'acquisition_channel', label: 'Acquisition Channel', type: 'select', options: ['Website','SocialMedia','Event','WordOfMouth','PartnerReferral','Church'] },
+  { key: 'first_donation_date', label: 'First Donation Date', type: 'date' },
+]
+
+const DONATION_FIELDS: FieldDef[] = [
+  { key: 'supporter_id', label: 'Supporter ID', type: 'number', required: true, placeholder: 'Enter supporter_id number' },
+  { key: 'donation_type', label: 'Donation Type', type: 'select', required: true, options: ['Monetary','InKind','Time','Skills','SocialMedia'] },
+  { key: 'donation_date', label: 'Donation Date', type: 'date', required: true },
+  { key: 'channel_source', label: 'Channel Source', type: 'select', required: true, options: ['Campaign','Event','Direct','SocialMedia','PartnerReferral'] },
+  { key: 'amount', label: 'Amount (PHP)', type: 'number' },
+  { key: 'currency_code', label: 'Currency Code', type: 'text', placeholder: 'PHP' },
+  { key: 'impact_unit', label: 'Impact Unit', type: 'select', required: true, options: ['pesos','items','hours','campaigns'] },
+  { key: 'is_recurring', label: 'Recurring Donation', type: 'checkbox' },
+  { key: 'campaign_name', label: 'Campaign Name', type: 'text' },
+  { key: 'notes', label: 'Notes', type: 'textarea' },
+]
+
 export default function DonorsPortal() {
   const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('donations')
@@ -24,29 +57,24 @@ export default function DonorsPortal() {
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [visible, setVisible] = useState(12)
+  const [showForm, setShowForm] = useState<'supporter' | 'donation' | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
-    Promise.all([
-      getDonations(),
-      getSupporters(),
-      getDonationAllocations(),
-      getInKindDonationItems(),
-    ])
+    Promise.all([getDonations(), getSupporters(), getDonationAllocations(), getInKindDonationItems()])
       .then(([donations, supporters, allocations, inkind]) => {
         setData({ donations, supporters, allocations, inkind })
       })
       .catch(() => setError('Failed to load donor data.'))
       .finally(() => setLoading(false))
-  }, [])
+  }, [refreshKey])
+
+  const totalMonetary = data.donations.filter(d => d.donation_type === 'Monetary').reduce((sum, d) => sum + Number(d.amount ?? 0), 0)
 
   const rows = data[tab]
   const filtered = rows.filter((r) =>
     Object.values(r).some((v) => String(v ?? '').toLowerCase().includes(search.toLowerCase()))
   )
-
-  const totalMonetary = data.donations
-    .filter((d) => d.donation_type === 'Monetary')
-    .reduce((sum, d) => sum + Number(d.amount ?? 0), 0)
 
   const renderCard = (r: Row, i: number) => {
     switch (tab) {
@@ -59,7 +87,7 @@ export default function DonorsPortal() {
             </div>
             <div className="donor-card-body">
               <div className="donor-field"><span className="field-label">Channel</span><span>{String(r.channel_source ?? '—')}</span></div>
-              {!!r.amount && <div className="donor-field"><span className="field-label">Amount</span><span>₱{Number(r.amount).toLocaleString()}</span></div>}
+              {!!r.amount && <div className="donor-field"><span className="field-label">Amount</span><span>{formatUsd(phpToUsd(Number(r.amount)))}</span></div>}
               {!!r.campaign_name && <div className="donor-field"><span className="field-label">Campaign</span><span>{String(r.campaign_name)}</span></div>}
               <div className="donor-field"><span className="field-label">Recurring</span><span>{r.is_recurring ? 'Yes' : 'No'}</span></div>
             </div>
@@ -88,7 +116,7 @@ export default function DonorsPortal() {
               <span className="donor-date">{String(r.allocation_date ?? '—')}</span>
             </div>
             <div className="donor-card-body">
-              <div className="donor-field"><span className="field-label">Amount</span><span>₱{Number(r.amount_allocated ?? 0).toLocaleString()}</span></div>
+              <div className="donor-field"><span className="field-label">Amount</span><span>{formatUsd(phpToUsd(Number(r.amount_allocated ?? 0)))}</span></div>
               <div className="donor-field"><span className="field-label">Donation ID</span><span>#{String(r.donation_id ?? '—')}</span></div>
               <div className="donor-field"><span className="field-label">Safehouse ID</span><span>#{String(r.safehouse_id ?? '—')}</span></div>
               {!!r.allocation_notes && <div className="donor-field"><span className="field-label">Notes</span><span>{String(r.allocation_notes).slice(0, 60)}</span></div>}
@@ -105,7 +133,7 @@ export default function DonorsPortal() {
             <div className="donor-card-body">
               <div className="donor-field"><span className="field-label">Category</span><span>{String(r.item_category ?? '—')}</span></div>
               <div className="donor-field"><span className="field-label">Quantity</span><span>{String(r.quantity ?? '—')} {String(r.unit_of_measure ?? '')}</span></div>
-              <div className="donor-field"><span className="field-label">Est. Value</span><span>₱{Number(r.estimated_unit_value ?? 0).toLocaleString()}/unit</span></div>
+              <div className="donor-field"><span className="field-label">Est. Value</span><span>{formatUsd(phpToUsd(Number(r.estimated_unit_value ?? 0)))}/unit</span></div>
               <div className="donor-field"><span className="field-label">Intended Use</span><span>{String(r.intended_use ?? '—')}</span></div>
             </div>
           </div>
@@ -115,6 +143,23 @@ export default function DonorsPortal() {
 
   return (
     <main className="donors-page">
+      {showForm === 'supporter' && (
+        <FormModal
+          title="Add Supporter"
+          fields={SUPPORTER_FIELDS}
+          onSave={async (d) => { await insertRow('supporters', d); setRefreshKey(k => k + 1) }}
+          onClose={() => setShowForm(null)}
+        />
+      )}
+      {showForm === 'donation' && (
+        <FormModal
+          title="Add Donation"
+          fields={DONATION_FIELDS}
+          onSave={async (d) => { await insertRow('donations', { ...d, currency_code: d.currency_code || 'PHP' }); setRefreshKey(k => k + 1) }}
+          onClose={() => setShowForm(null)}
+        />
+      )}
+
       <div className="donors-header">
         <button className="back-btn" onClick={() => navigate('/')}>← Back</button>
         <div>
@@ -126,7 +171,7 @@ export default function DonorsPortal() {
       <div className="donors-stats">
         <div className="stat-card"><span className="stat-value">{data.donations.length}</span><span className="stat-label">Total Donations</span></div>
         <div className="stat-card"><span className="stat-value">{data.supporters.length}</span><span className="stat-label">Supporters</span></div>
-        <div className="stat-card"><span className="stat-value">₱{totalMonetary.toLocaleString()}</span><span className="stat-label">Total Monetary</span></div>
+        <div className="stat-card"><span className="stat-value">{formatUsd(phpToUsd(totalMonetary))}</span><span className="stat-label">Total Monetary</span></div>
         <div className="stat-card"><span className="stat-value">{data.donations.filter((d) => d.is_recurring).length}</span><span className="stat-label">Recurring</span></div>
       </div>
 
@@ -152,6 +197,12 @@ export default function DonorsPortal() {
           onChange={(e) => { setSearch(e.target.value); setVisible(6) }}
         />
         <span className="count">{filtered.length} record{filtered.length !== 1 ? 's' : ''}</span>
+        {tab === 'supporters' && (
+          <button className="dp-add-btn" onClick={() => setShowForm('supporter')}>+ Add Supporter</button>
+        )}
+        {tab === 'donations' && (
+          <button className="dp-add-btn" onClick={() => setShowForm('donation')}>+ Add Donation</button>
+        )}
       </div>
 
       {loading && <p className="state-msg">Loading...</p>}

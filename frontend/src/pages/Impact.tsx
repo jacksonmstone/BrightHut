@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { getPublicImpactSnapshots, getSafehouseMonthlyMetrics } from '../api/impact'
+import { getDonations } from '../api/donations'
+import { phpToUsd, formatUsd } from '../components/donationProgress'
 import './Impact.css'
 
 type Snapshot = Record<string, unknown>
@@ -24,16 +26,21 @@ export default function Impact() {
   const navigate = useNavigate()
   const [snapshots, setSnapshots] = useState<Snapshot[]>([])
   const [metrics, setMetrics] = useState<MetricRow[]>([])
+  const [totalRaisedPhp, setTotalRaisedPhp] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     setLoading(true)
     setError(null)
-    Promise.all([getPublicImpactSnapshots(), getSafehouseMonthlyMetrics()])
-      .then(([s, m]) => {
+    Promise.all([getPublicImpactSnapshots(), getSafehouseMonthlyMetrics(), getDonations()])
+      .then(([s, m, d]) => {
         setSnapshots(s ?? [])
         setMetrics(m ?? [])
+        const total = (d ?? [])
+          .filter((r) => r.donation_type === 'Monetary')
+          .reduce((sum, r) => sum + toNumber(r.amount), 0)
+        setTotalRaisedPhp(total)
       })
       .catch(() => setError('Failed to load impact data. Please try again later.'))
       .finally(() => setLoading(false))
@@ -143,7 +150,14 @@ export default function Impact() {
             </div>
           </section>
 
-          <section className="impact-stats">
+          <div className="impact-metrics-wrap">
+            <div className="impact-total-raised">
+              <span className="impact-total-raised-label">Total Raised</span>
+              <span className="impact-total-raised-value">{formatUsd(phpToUsd(totalRaisedPhp))}</span>
+              <span className="impact-total-raised-sub">in monetary donations across all campaigns</span>
+            </div>
+
+            <section className="impact-stats">
             <div className="impact-stat">
               <span className="impact-stat-value">{totals.activeResidents.toLocaleString()}</span>
               <span className="impact-stat-label">Active residents (latest month)</span>
@@ -165,6 +179,7 @@ export default function Impact() {
               <span className="impact-stat-label">Home/field visits completed</span>
             </div>
           </section>
+          </div>
 
           <section className="impact-section">
             <div className="impact-section-header">

@@ -38,9 +38,11 @@ export default function Navbar() {
         {!loggedIn && <Link to="/privacy" className="nav-link">Privacy</Link>}
         {loggedIn && (
           <>
+            {isStaff && <Link to="/dashboard" className="nav-link">Dashboard</Link>}
             {isStaff && <Link to="/social" className="nav-link">Social Media</Link>}
             <Link to="/donors" className="nav-link">{isStaff ? 'Donors' : 'My Contributions'}</Link>
             {isStaff && <Link to="/participants" className="nav-link">Participants</Link>}
+            {isStaff && <Link to="/analytics" className="nav-link">Analytics</Link>}
           </>
         )}
         {loggedIn ? (

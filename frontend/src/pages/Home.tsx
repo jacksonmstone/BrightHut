@@ -5,6 +5,13 @@ import './Home.css'
 
 const privatePortals = [
   {
+    title: 'Dashboard',
+    description: 'Command center — active residents, donations, incidents, and case conferences.',
+    icon: '📊',
+    path: '/dashboard',
+    color: 'teal',
+  },
+  {
     title: 'Social Media Portal',
     description: 'Stay connected and engage with our community across platforms.',
     icon: '💬',

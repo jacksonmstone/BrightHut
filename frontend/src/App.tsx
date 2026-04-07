@@ -9,9 +9,12 @@ import SocialPortal from './pages/SocialPortal'
 import DonatePaymentPage from './pages/DonatePaymentPage'
 import DonorsPortal from './pages/DonorsPortal'
 import MyContributions from './pages/MyContributions'
+import AdminDashboard from './pages/AdminDashboard'
+import ResidentDetail from './pages/ResidentDetail'
 import ParticipantsPortal from './pages/ParticipantsPortal'
 import Impact from './pages/Impact'
 import PrivacyPolicy from './pages/PrivacyPolicy'
+import Analytics from './pages/Analytics'
 
 function RequireAuth({ children, staffOnly = false }: { children: React.ReactNode; staffOnly?: boolean }) {
   const token = localStorage.getItem('token')
@@ -36,9 +39,12 @@ function App() {
         <Route path="/privacy" element={<PrivacyPolicy />} />
 
         {/* Protected — must be logged in */}
+        <Route path="/dashboard" element={<RequireAuth staffOnly><AdminDashboard /></RequireAuth>} />
         <Route path="/social" element={<RequireAuth staffOnly><SocialPortal /></RequireAuth>} />
         <Route path="/donors" element={<RequireAuth>{localStorage.getItem('role') === 'staff' ? <DonorsPortal /> : <MyContributions />}</RequireAuth>} />
         <Route path="/participants" element={<RequireAuth staffOnly><ParticipantsPortal /></RequireAuth>} />
+        <Route path="/participants/:id" element={<RequireAuth staffOnly><ResidentDetail /></RequireAuth>} />
+        <Route path="/analytics" element={<RequireAuth staffOnly><Analytics /></RequireAuth>} />
       </Routes>
       <CookieBanner />
     </BrowserRouter>

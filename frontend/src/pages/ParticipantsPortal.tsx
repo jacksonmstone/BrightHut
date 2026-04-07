@@ -9,10 +9,13 @@ import {
   getInterventionPlans,
   getIncidentReports,
 } from '../api/residents'
+import { getSafehouses } from '../api/safehouses'
+import { insertRow } from '../api/tables'
+import FormModal from '../components/FormModal'
+import type { FieldDef } from '../components/FormModal'
 import './ParticipantsPortal.css'
 
 type Row = Record<string, unknown>
-
 type Tab = 'residents' | 'process' | 'visitations' | 'education' | 'health' | 'interventions' | 'incidents'
 
 const TABS: { id: Tab; label: string }[] = [
@@ -31,10 +34,16 @@ export default function ParticipantsPortal() {
   const [data, setData] = useState<Record<Tab, Row[]>>({
     residents: [], process: [], visitations: [], education: [], health: [], interventions: [], incidents: [],
   })
+  const [safehouses, setSafehouses] = useState<Row[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [visible, setVisible] = useState(12)
+  const [filterStatus, setFilterStatus] = useState('')
+  const [filterCategory, setFilterCategory] = useState('')
+  const [filterSafehouse, setFilterSafehouse] = useState('')
+  const [showAddResident, setShowAddResident] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
     Promise.all([
@@ -45,24 +54,55 @@ export default function ParticipantsPortal() {
       getHealthRecords(),
       getInterventionPlans(),
       getIncidentReports(),
+      getSafehouses(),
     ])
-      .then(([residents, process, visitations, education, health, interventions, incidents]) => {
+      .then(([residents, process, visitations, education, health, interventions, incidents, sh]) => {
         setData({ residents, process, visitations, education, health, interventions, incidents })
+        setSafehouses(sh)
       })
       .catch(() => setError('Failed to load participant data.'))
       .finally(() => setLoading(false))
-  }, [])
+  }, [refreshKey])
+
+  const residentFields: FieldDef[] = [
+    { key: 'case_control_no', label: 'Case Control No', type: 'text', required: true },
+    { key: 'internal_code', label: 'Internal Code', type: 'text', required: true },
+    { key: 'safehouse_id', label: 'Safehouse', type: 'select', required: true, options: safehouses.filter(s => s.status === 'Active').map(s => String(s.safehouse_id)) },
+    { key: 'case_status', label: 'Case Status', type: 'select', required: true, options: ['Active','Closed','Transferred'] },
+    { key: 'case_category', label: 'Case Category', type: 'select', required: true, options: ['Abandoned','Foundling','Surrendered','Neglected'] },
+    { key: 'sex', label: 'Sex', type: 'select', required: true, options: ['F'] },
+    { key: 'date_of_birth', label: 'Date of Birth', type: 'date' },
+    { key: 'birth_status', label: 'Birth Status', type: 'select', options: ['Marital','Non-Marital'] },
+    { key: 'place_of_birth', label: 'Place of Birth', type: 'text' },
+    { key: 'religion', label: 'Religion', type: 'text' },
+    { key: 'date_of_admission', label: 'Date of Admission', type: 'date' },
+    { key: 'age_upon_admission', label: 'Age on Admission', type: 'text' },
+    { key: 'assigned_social_worker', label: 'Assigned Social Worker', type: 'text' },
+    { key: 'referral_source', label: 'Referral Source', type: 'select', options: ['Government Agency','NGO','Police','Self-Referral','Community','Court Order'] },
+    { key: 'referring_agency_person', label: 'Referring Agency/Person', type: 'text' },
+    { key: 'initial_risk_level', label: 'Initial Risk Level', type: 'select', options: ['Low','Medium','High','Critical'] },
+    { key: 'current_risk_level', label: 'Current Risk Level', type: 'select', options: ['Low','Medium','High','Critical'] },
+    { key: 'reintegration_type', label: 'Reintegration Type', type: 'select', options: ['Family Reunification','Foster Care','Adoption (Domestic)','Adoption (Inter-Country)','Independent Living','None'] },
+    { key: 'reintegration_status', label: 'Reintegration Status', type: 'select', options: ['Not Started','In Progress','Completed','On Hold'] },
+  ]
 
   const rows = data[tab]
-  const filtered = rows.filter((r) =>
-    Object.values(r).some((v) => String(v ?? '').toLowerCase().includes(search.toLowerCase()))
-  )
+  const filtered = rows.filter((r) => {
+    const matchSearch = Object.values(r).some((v) => String(v ?? '').toLowerCase().includes(search.toLowerCase()))
+    if (tab !== 'residents') return matchSearch
+    const matchStatus = !filterStatus || r.case_status === filterStatus
+    const matchCategory = !filterCategory || r.case_category === filterCategory
+    const matchSafehouse = !filterSafehouse || String(r.safehouse_id) === filterSafehouse
+    return matchSearch && matchStatus && matchCategory && matchSafehouse
+  })
+
+  const resetFilters = () => { setFilterStatus(''); setFilterCategory(''); setFilterSafehouse('') }
 
   const renderCard = (r: Row, i: number) => {
     switch (tab) {
       case 'residents':
         return (
-          <div key={i} className="p-card">
+          <div key={i} className="p-card p-card--clickable" onClick={() => navigate(`/participants/${r.resident_id}`)}>
             <div className="p-card-header">
               <span className="p-code">{String(r.internal_code ?? '—')}</span>
               <span className={`status-badge status-${String(r.case_status ?? '').toLowerCase()}`}>{String(r.case_status ?? '—')}</span>
@@ -74,6 +114,7 @@ export default function ParticipantsPortal() {
               <div className="p-field"><span className="field-label">Admitted</span><span>{String(r.date_of_admission ?? '—')}</span></div>
               <div className="p-field"><span className="field-label">Reintegration</span><span>{String(r.reintegration_status ?? '—')}</span></div>
             </div>
+            <div className="p-card-footer">View full record →</div>
           </div>
         )
       case 'process':
@@ -114,14 +155,13 @@ export default function ParticipantsPortal() {
           <div key={i} className="p-card">
             <div className="p-card-header">
               <span className="p-code">{String(r.record_date ?? '—')}</span>
-              <span className="meta-tag">{String(r.program_name ?? '—')}</span>
+              <span className="meta-tag">{String(r.program_name ?? r.education_level ?? '—')}</span>
             </div>
             <div className="p-card-body">
-              <div className="p-field"><span className="field-label">Course</span><span>{String(r.course_name ?? '—')}</span></div>
+              <div className="p-field"><span className="field-label">School</span><span>{String(r.school_name ?? '—')}</span></div>
               <div className="p-field"><span className="field-label">Level</span><span>{String(r.education_level ?? '—')}</span></div>
-              <div className="p-field"><span className="field-label">Attendance</span><span>{String(r.attendance_status ?? '—')}</span></div>
+              <div className="p-field"><span className="field-label">Attendance</span><span>{String(r.attendance_status ?? r.enrollment_status ?? '—')}</span></div>
               <div className="p-field"><span className="field-label">Progress</span><span>{Number(r.progress_percent ?? 0).toFixed(1)}%</span></div>
-              <div className="p-field"><span className="field-label">GPA Score</span><span>{String(r.gpa_like_score ?? '—')}</span></div>
               <div className="p-field"><span className="field-label">Status</span><span>{String(r.completion_status ?? '—')}</span></div>
             </div>
           </div>
@@ -137,8 +177,8 @@ export default function ParticipantsPortal() {
               <div className="p-field"><span className="field-label">Weight</span><span>{String(r.weight_kg ?? '—')} kg</span></div>
               <div className="p-field"><span className="field-label">Height</span><span>{String(r.height_cm ?? '—')} cm</span></div>
               <div className="p-field"><span className="field-label">Nutrition</span><span>{String(r.nutrition_score ?? '—')}</span></div>
-              <div className="p-field"><span className="field-label">Sleep</span><span>{String(r.sleep_score ?? '—')}</span></div>
-              <div className="p-field"><span className="field-label">Energy</span><span>{String(r.energy_score ?? '—')}</span></div>
+              <div className="p-field"><span className="field-label">Sleep</span><span>{String(r.sleep_quality_score ?? r.sleep_score ?? '—')}</span></div>
+              <div className="p-field"><span className="field-label">Energy</span><span>{String(r.energy_level_score ?? r.energy_score ?? '—')}</span></div>
               <div className="p-field"><span className="field-label">General Health</span><span>{String(r.general_health_score ?? '—')}</span></div>
             </div>
           </div>
@@ -178,6 +218,15 @@ export default function ParticipantsPortal() {
 
   return (
     <main className="participants-page">
+      {showAddResident && (
+        <FormModal
+          title="Add New Resident"
+          fields={residentFields}
+          onSave={async (d) => { await insertRow('residents', d); setRefreshKey(k => k + 1) }}
+          onClose={() => setShowAddResident(false)}
+        />
+      )}
+
       <div className="participants-header">
         <button className="back-btn" onClick={() => navigate('/')}>← Back</button>
         <div>
@@ -191,13 +240,31 @@ export default function ParticipantsPortal() {
           <button
             key={t.id}
             className={`tab-btn ${tab === t.id ? 'active' : ''}`}
-            onClick={() => { setTab(t.id); setSearch(''); setVisible(12) }}
+            onClick={() => { setTab(t.id); setSearch(''); setVisible(12); resetFilters() }}
           >
             {t.label}
             <span className="tab-count">{data[t.id].length}</span>
           </button>
         ))}
       </div>
+
+      {tab === 'residents' && (
+        <div className="pp-filters">
+          <select className="pp-filter-select" value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setVisible(12) }}>
+            <option value="">All Statuses</option>
+            {['Active','Closed','Transferred'].map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <select className="pp-filter-select" value={filterCategory} onChange={e => { setFilterCategory(e.target.value); setVisible(12) }}>
+            <option value="">All Categories</option>
+            {['Abandoned','Foundling','Surrendered','Neglected'].map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select className="pp-filter-select" value={filterSafehouse} onChange={e => { setFilterSafehouse(e.target.value); setVisible(12) }}>
+            <option value="">All Safehouses</option>
+            {safehouses.map(s => <option key={String(s.safehouse_id)} value={String(s.safehouse_id)}>{String(s.name)}</option>)}
+          </select>
+          <button className="pp-add-btn" onClick={() => setShowAddResident(true)}>+ Add Resident</button>
+        </div>
+      )}
 
       <div className="participants-controls">
         <input

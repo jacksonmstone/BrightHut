@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getSupporters } from '../api/supporters'
 import { getDonations, getDonationAllocations } from '../api/donations'
+import { phpToUsd, formatUsd } from '../components/donationProgress'
 import './MyContributions.css'
 
 type Row = Record<string, unknown>
 
 function fmt(val: unknown) {
   const n = parseFloat(String(val ?? ''))
-  return isNaN(n) ? '—' : n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return isNaN(n) ? '—' : formatUsd(phpToUsd(n))
 }
 
 export default function MyContributions() {
@@ -81,7 +82,7 @@ export default function MyContributions() {
       <div className="mc-summary">
         <div className="mc-card">
           <span className="mc-card-label">Total Given</span>
-          <span className="mc-card-value">₱{fmt(totalGiven)}</span>
+          <span className="mc-card-value">{fmt(totalGiven)}</span>
         </div>
         <div className="mc-card">
           <span className="mc-card-label">Donations Made</span>
@@ -161,7 +162,7 @@ export default function MyContributions() {
                         style={{ width: `${Math.min(100, (amount / totalGiven) * 100)}%` }}
                       />
                     </div>
-                    <span className="mc-allocation-amount">₱{fmt(amount)}</span>
+                    <span className="mc-allocation-amount">{fmt(amount)}</span>
                   </div>
                 ))}
               </div>
