@@ -34,6 +34,7 @@ export default function ParticipantsPortal() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [visible, setVisible] = useState(12)
 
   useEffect(() => {
     Promise.all([
@@ -190,7 +191,7 @@ export default function ParticipantsPortal() {
           <button
             key={t.id}
             className={`tab-btn ${tab === t.id ? 'active' : ''}`}
-            onClick={() => { setTab(t.id); setSearch('') }}
+            onClick={() => { setTab(t.id); setSearch(''); setVisible(12) }}
           >
             {t.label}
             <span className="tab-count">{data[t.id].length}</span>
@@ -213,10 +214,19 @@ export default function ParticipantsPortal() {
       {error && <p className="state-msg error">{error}</p>}
 
       {!loading && !error && (
-        <div className="residents-grid">
-          {filtered.map((r, i) => renderCard(r, i))}
-          {filtered.length === 0 && <p className="state-msg">No records match your search.</p>}
-        </div>
+        <>
+          <div className="residents-grid">
+            {filtered.slice(0, visible).map((r, i) => renderCard(r, i))}
+            {filtered.length === 0 && <p className="state-msg">No records match your search.</p>}
+          </div>
+          {visible < filtered.length && (
+            <div className="load-more-wrap">
+              <button className="load-more-btn" onClick={() => setVisible(v => v + 12)}>
+                Show 12 more ({filtered.length - visible} remaining)
+              </button>
+            </div>
+          )}
+        </>
       )}
     </main>
   )

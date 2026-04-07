@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getSupporters } from '../api/supporters'
 import { getDonations, getDonationAllocations } from '../api/donations'
 import './MyContributions.css'
@@ -11,8 +12,10 @@ function fmt(val: unknown) {
 }
 
 export default function MyContributions() {
+  const navigate = useNavigate()
   const email = localStorage.getItem('email') ?? ''
-  const firstName = email.split('@')[0]
+  const rawName = email.split('@')[0]
+  const firstName = rawName.charAt(0).toUpperCase() + rawName.slice(1)
 
   const [supporters, setSupporters] = useState<Row[]>([])
   const [donations, setDonations] = useState<Row[]>([])
@@ -69,6 +72,7 @@ export default function MyContributions() {
   return (
     <main className="my-contributions">
       <div className="mc-header">
+        <button className="mc-back" onClick={() => window.history.back()}>← Back to Portal</button>
         <h1>My Contributions</h1>
         <p className="mc-subhead">Welcome back, <strong>{supporter ? String(supporter.first_name ?? firstName) : firstName}</strong>. Here's your giving history.</p>
       </div>
@@ -96,6 +100,8 @@ export default function MyContributions() {
           </span>
         </div>
       </div>
+
+      <button className="mc-donate-btn" onClick={() => navigate('/#donate')}>Make a Donation</button>
 
       {!supporter ? (
         <div className="mc-empty">

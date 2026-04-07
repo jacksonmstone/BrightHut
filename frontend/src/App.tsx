@@ -37,7 +37,7 @@ function App() {
 
         {/* Protected — must be logged in */}
         <Route path="/social" element={<RequireAuth staffOnly><SocialPortal /></RequireAuth>} />
-        <Route path="/donors" element={<RequireAuth><MyContributions /></RequireAuth>} />
+        <Route path="/donors" element={<RequireAuth>{localStorage.getItem('role') === 'staff' ? <DonorsPortal /> : <MyContributions />}</RequireAuth>} />
         <Route path="/participants" element={<RequireAuth staffOnly><ParticipantsPortal /></RequireAuth>} />
       </Routes>
       <CookieBanner />

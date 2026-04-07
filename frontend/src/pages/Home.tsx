@@ -12,8 +12,8 @@ const privatePortals = [
     color: 'blue',
   },
   {
-    title: 'My Contributions',
-    description: 'View your donation history and see the impact of your giving.',
+    title: 'Donors Portal',
+    description: 'View all donor records, donation history, and contribution data.',
     icon: '🤝',
     path: '/donors',
     color: 'sand',
@@ -46,27 +46,66 @@ export default function Home() {
     el.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [location.hash])
 
+  const rawName = localStorage.getItem('email')?.split('@')[0] ?? 'there'
+  const donorName = rawName.charAt(0).toUpperCase() + rawName.slice(1)
+
   return (
     <main className="home">
       <section className="hero">
         <div className="hero-content">
-          <span className="hero-tag">Welcome to BrightHut</span>
-          <h1 className="hero-title">
-            Empowering communities,<br />
-            <span className="hero-accent">one connection at a time.</span>
-          </h1>
-          <p className="hero-subtitle">
-            A place where participants, donors, and community members come together
-            to create meaningful, lasting change.
-          </p>
-          <div className="hero-actions">
-            <button className="btn-primary" onClick={() => navigate('/login')}>
-              Get Started
-            </button>
-            <button className="btn-secondary" onClick={() => navigate('/about')}>
-              Learn More
-            </button>
-          </div>
+          {!loggedIn && (
+            <>
+              <span className="hero-tag">Welcome to BrightHut</span>
+              <h1 className="hero-title">
+                Empowering communities,<br />
+                <span className="hero-accent">one connection at a time.</span>
+              </h1>
+              <p className="hero-subtitle">
+                A place where participants, donors, and community members come together
+                to create meaningful, lasting change.
+              </p>
+              <div className="hero-actions">
+                <button className="btn-primary" onClick={() => navigate('/login')}>
+                  Get Started
+                </button>
+                <button className="btn-secondary" onClick={() => navigate('/about')}>
+                  Learn More
+                </button>
+              </div>
+            </>
+          )}
+          {loggedIn && !isStaff && (
+            <>
+              <span className="hero-tag">Welcome back</span>
+              <h1 className="hero-title">
+                Hi, <span className="hero-accent">{donorName}.</span>
+              </h1>
+              <p className="hero-subtitle">
+                Thank you for your continued support of BrightHut. Your generosity helps
+                provide shelter, education, and healing for children in need.
+              </p>
+              <div className="hero-actions">
+                <button className="btn-primary" onClick={() => navigate('/donors')}>
+                  View My Contributions
+                </button>
+                <button className="btn-secondary" onClick={() => navigate('/#donate')}>
+                  Make a Donation
+                </button>
+              </div>
+            </>
+          )}
+          {loggedIn && isStaff && (
+            <>
+              <span className="hero-tag">Admin Dashboard</span>
+              <h1 className="hero-title">
+                Welcome back,<br />
+                <span className="hero-accent">BrightHut Team.</span>
+              </h1>
+              <p className="hero-subtitle">
+                Manage donor records, participant data, and social media insights from the portals below.
+              </p>
+            </>
+          )}
         </div>
         <div className="hero-visual">
           <div className="hero-blob" />
@@ -76,8 +115,8 @@ export default function Home() {
       {loggedIn && (
         <section className="portals-section">
           <div className="portals-header">
-            <h2>Where would you like to go?</h2>
-            <p className="portals-subtitle">Select a portal to get started</p>
+            <h2>{isStaff ? 'Where would you like to go?' : 'Access My Donation History'}</h2>
+            <p className="portals-subtitle">{isStaff ? 'Select a portal to get started' : 'View your contributions and see the impact of your giving'}</p>
           </div>
           <div className="portals-grid">
             {portals.map((portal) => (

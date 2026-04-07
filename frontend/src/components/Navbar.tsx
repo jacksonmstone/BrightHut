@@ -38,8 +38,8 @@ export default function Navbar() {
         {!loggedIn && <Link to="/privacy" className="nav-link">Privacy</Link>}
         {loggedIn && (
           <>
-            {isStaff && <Link to="/social" className="nav-link">Social</Link>}
-            <Link to="/donors" className="nav-link">My Contributions</Link>
+            {isStaff && <Link to="/social" className="nav-link">Social Media</Link>}
+            <Link to="/donors" className="nav-link">{isStaff ? 'Donors' : 'My Contributions'}</Link>
             {isStaff && <Link to="/participants" className="nav-link">Participants</Link>}
           </>
         )}

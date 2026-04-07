@@ -15,6 +15,41 @@
   margin-bottom: 32px;
 }
 
+.mc-back {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 12px;
+  display: inline-block;
+}
+
+.mc-back:hover {
+  text-decoration: underline;
+}
+
+.mc-donate-btn {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  margin-bottom: 40px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.mc-donate-btn:hover {
+  opacity: 0.88;
+}
+
 .mc-header h1 {
   font-size: 28px;
   font-weight: 700;
