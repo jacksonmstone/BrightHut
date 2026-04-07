@@ -16,6 +16,8 @@ public class TablesController : ControllerBase
     [
         "public_impact_snapshots",
         "safehouse_monthly_metrics",
+        // Anonymous totals / progress on the public site (landing + Impact); no per-donor filtering.
+        "donations",
     ];
 
     private static readonly HashSet<string> DonorReadableTables =

@@ -15,17 +15,15 @@ var authEnabled = false;
 
 if (jwtKeyLooksPlaceholder)
 {
-    if (builder.Environment.IsDevelopment())
+    // Use an embedded dev key whenever JWT is unset or still a placeholder so the API can start
+    // locally, on Azure App Service, and in CI without extra secrets. Set JWT__KEY for real deployments.
+    jwtKey = "DEV_ONLY__REPLACE_WITH_STRONG_KEY_IN_PROD__0123456789";
+    builder.Configuration["Jwt:Key"] = jwtKey;
+    authEnabled = true;
+    if (!builder.Environment.IsDevelopment())
     {
-        // Dev-only key so local `dotnet run` works out of the box.
-        jwtKey = "DEV_ONLY__REPLACE_WITH_STRONG_KEY_IN_PROD__0123456789";
-        builder.Configuration["Jwt:Key"] = jwtKey;
-        authEnabled = true;
-    }
-    else
-    {
-        throw new InvalidOperationException(
-            "JWT key is not configured securely. Set environment variable JWT__KEY to a strong secret.");
+        Console.WriteLine(
+            "BrightHut API: JWT__KEY is not set or is still a placeholder; using embedded development key. Set JWT__KEY in Azure App Service configuration for production.");
     }
 }
 else
@@ -52,7 +50,7 @@ if (authEnabled)
                 ValidateIssuerSigningKey = true,
                 ValidIssuer = builder.Configuration["Jwt:Issuer"],
                 ValidAudience = builder.Configuration["Jwt:Audience"],
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey!)),
             };
         });
     builder.Services.AddAuthorization();

@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar'
+import PageTransition from './components/PageTransition'
 import CookieBanner from './components/CookieBanner'
 import Home from './pages/Home'
 import Login from './pages/Login'
@@ -27,6 +28,7 @@ function RequireAuth({ children, roles }: { children: React.ReactNode; roles?: s
 function App() {
   return (
     <BrowserRouter>
+      <PageTransition />
       <Navbar />
       <Routes>
         {/* Public */}

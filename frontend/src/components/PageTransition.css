@@ -1,0 +1,128 @@
+.page-transition-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.32s ease,
+    visibility 0s linear 0.35s;
+  background: linear-gradient(
+    145deg,
+    rgba(251, 246, 238, 0.92) 0%,
+    rgba(255, 244, 218, 0.88) 45%,
+    rgba(238, 241, 246, 0.9) 100%
+  );
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.page-transition-overlay--active {
+  pointer-events: auto;
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 0.28s ease,
+    visibility 0s;
+}
+
+.page-transition__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  transform: translateY(6px);
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.page-transition-overlay--active .page-transition__inner {
+  transform: translateY(0);
+}
+
+.page-transition__orb {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 3px solid rgba(210, 162, 58, 0.2);
+  border-top-color: var(--primary);
+  animation: page-transition-spin 0.85s linear infinite;
+  box-shadow: 0 4px 20px rgba(47, 60, 87, 0.08);
+}
+
+.page-transition__label {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--secondary);
+  opacity: 0.85;
+}
+
+.page-transition__dots {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.page-transition__dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+  opacity: 0.35;
+  animation: page-transition-dot 1.1s ease-in-out infinite;
+}
+
+.page-transition__dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.page-transition__dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes page-transition-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes page-transition-dot {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-transition-overlay {
+    transition-duration: 0.01s;
+  }
+
+  .page-transition-overlay--active {
+    transition-duration: 0.01s;
+  }
+
+  .page-transition__inner {
+    transition: none;
+  }
+
+  .page-transition__orb {
+    animation: none;
+    border-top-color: rgba(210, 162, 58, 0.55);
+  }
+
+  .page-transition__dots span {
+    animation: none;
+    opacity: 0.7;
+  }
+}
