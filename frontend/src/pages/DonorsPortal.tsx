@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getDonations, getDonationAllocations, getInKindDonationItems } from '../api/donations'
 import { getSupporters } from '../api/supporters'
-import { insertRow } from '../api/tables'
+import { insertRow, updateRow } from '../api/tables'
 import FormModal from '../components/FormModal'
 import type { FieldDef } from '../components/FormModal'
 import { phpToUsd, formatUsd } from '../components/donationProgress'
@@ -47,6 +47,8 @@ const DONATION_FIELDS: FieldDef[] = [
   { key: 'notes', label: 'Notes', type: 'textarea' },
 ]
 
+type FormState = { mode: 'add-supporter' | 'add-donation' | 'edit-supporter' | 'edit-donation'; record?: Row }
+
 export default function DonorsPortal() {
   const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('donations')
@@ -57,7 +59,9 @@ export default function DonorsPortal() {
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [visible, setVisible] = useState(12)
-  const [showForm, setShowForm] = useState<'supporter' | 'donation' | null>(null)
+  const [filterType, setFilterType] = useState('')
+  const [filterStatus, setFilterStatus] = useState('')
+  const [formState, setFormState] = useState<FormState | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
@@ -72,9 +76,29 @@ export default function DonorsPortal() {
   const totalMonetary = data.donations.filter(d => d.donation_type === 'Monetary').reduce((sum, d) => sum + Number(d.amount ?? 0), 0)
 
   const rows = data[tab]
-  const filtered = rows.filter((r) =>
-    Object.values(r).some((v) => String(v ?? '').toLowerCase().includes(search.toLowerCase()))
-  )
+  const filtered = rows.filter((r) => {
+    const matchSearch = Object.values(r).some((v) => String(v ?? '').toLowerCase().includes(search.toLowerCase()))
+    if (tab === 'supporters') {
+      const matchType = !filterType || r.supporter_type === filterType
+      const matchStatus = !filterStatus || r.status === filterStatus
+      return matchSearch && matchType && matchStatus
+    }
+    return matchSearch
+  })
+
+  const handleSave = async (d: Record<string, unknown>) => {
+    if (!formState) return
+    if (formState.mode === 'add-supporter') {
+      await insertRow('supporters', d)
+    } else if (formState.mode === 'add-donation') {
+      await insertRow('donations', { ...d, currency_code: d.currency_code || 'PHP' })
+    } else if (formState.mode === 'edit-supporter' && formState.record) {
+      await updateRow('supporters', Number(formState.record.supporter_id), d)
+    } else if (formState.mode === 'edit-donation' && formState.record) {
+      await updateRow('donations', Number(formState.record.donation_id), d)
+    }
+    setRefreshKey(k => k + 1)
+  }
 
   const renderCard = (r: Row, i: number) => {
     switch (tab) {
@@ -84,6 +108,7 @@ export default function DonorsPortal() {
             <div className="donor-card-header">
               <span className={`type-badge type-${String(r.donation_type ?? '').toLowerCase()}`}>{String(r.donation_type ?? '—')}</span>
               <span className="donor-date">{String(r.donation_date ?? '—')}</span>
+              <button className="dp-edit-btn" onClick={() => setFormState({ mode: 'edit-donation', record: r })}>Edit</button>
             </div>
             <div className="donor-card-body">
               <div className="donor-field"><span className="field-label">Channel</span><span>{String(r.channel_source ?? '—')}</span></div>
@@ -99,10 +124,12 @@ export default function DonorsPortal() {
             <div className="donor-card-header">
               <span className="supporter-name">{String(r.display_name ?? '—')}</span>
               <span className={`status-badge status-${String(r.status ?? '').toLowerCase()}`}>{String(r.status ?? '—')}</span>
+              <button className="dp-edit-btn" onClick={() => setFormState({ mode: 'edit-supporter', record: r })}>Edit</button>
             </div>
             <div className="donor-card-body">
               <div className="donor-field"><span className="field-label">Type</span><span>{String(r.supporter_type ?? '—')}</span></div>
               <div className="donor-field"><span className="field-label">Relationship</span><span>{String(r.relationship_type ?? '—')}</span></div>
+              {!!r.email && <div className="donor-field"><span className="field-label">Email</span><span>{String(r.email)}</span></div>}
               {!!r.first_donation_date && <div className="donor-field"><span className="field-label">First Donation</span><span>{String(r.first_donation_date)}</span></div>}
               {!!r.acquisition_channel && <div className="donor-field"><span className="field-label">Source</span><span>{String(r.acquisition_channel)}</span></div>}
             </div>
@@ -141,22 +168,22 @@ export default function DonorsPortal() {
     }
   }
 
+  const modalProps = formState ? (
+    formState.mode === 'add-supporter' ? { title: 'Add Supporter', fields: SUPPORTER_FIELDS, initialData: undefined } :
+    formState.mode === 'edit-supporter' ? { title: 'Edit Supporter', fields: SUPPORTER_FIELDS, initialData: formState.record } :
+    formState.mode === 'add-donation' ? { title: 'Add Donation', fields: DONATION_FIELDS, initialData: undefined } :
+    { title: 'Edit Donation', fields: DONATION_FIELDS, initialData: formState.record }
+  ) : null
+
   return (
     <main className="donors-page">
-      {showForm === 'supporter' && (
+      {formState && modalProps && (
         <FormModal
-          title="Add Supporter"
-          fields={SUPPORTER_FIELDS}
-          onSave={async (d) => { await insertRow('supporters', d); setRefreshKey(k => k + 1) }}
-          onClose={() => setShowForm(null)}
-        />
-      )}
-      {showForm === 'donation' && (
-        <FormModal
-          title="Add Donation"
-          fields={DONATION_FIELDS}
-          onSave={async (d) => { await insertRow('donations', { ...d, currency_code: d.currency_code || 'PHP' }); setRefreshKey(k => k + 1) }}
-          onClose={() => setShowForm(null)}
+          title={modalProps.title}
+          fields={modalProps.fields}
+          initialData={modalProps.initialData}
+          onSave={handleSave}
+          onClose={() => setFormState(null)}
         />
       )}
 
@@ -180,7 +207,7 @@ export default function DonorsPortal() {
           <button
             key={t.id}
             className={`tab-btn ${tab === t.id ? 'active' : ''}`}
-            onClick={() => { setTab(t.id); setSearch(''); setVisible(12) }}
+            onClick={() => { setTab(t.id); setSearch(''); setVisible(12); setFilterType(''); setFilterStatus('') }}
           >
             {t.label}
             <span className="tab-count">{data[t.id].length}</span>
@@ -188,20 +215,36 @@ export default function DonorsPortal() {
         ))}
       </div>
 
+      {tab === 'supporters' && (
+        <div className="dp-filters">
+          <select className="pp-filter-select" value={filterType} onChange={e => { setFilterType(e.target.value); setVisible(12) }}>
+            <option value="">All Types</option>
+            {['MonetaryDonor','InKindDonor','Volunteer','SkillsContributor','SocialMediaAdvocate','PartnerOrganization'].map(t => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </select>
+          <select className="pp-filter-select" value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setVisible(12) }}>
+            <option value="">All Statuses</option>
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+        </div>
+      )}
+
       <div className="donors-controls">
         <input
           className="search-input"
           type="text"
           placeholder="Search across all fields..."
           value={search}
-          onChange={(e) => { setSearch(e.target.value); setVisible(6) }}
+          onChange={(e) => { setSearch(e.target.value); setVisible(12) }}
         />
         <span className="count">{filtered.length} record{filtered.length !== 1 ? 's' : ''}</span>
         {tab === 'supporters' && (
-          <button className="dp-add-btn" onClick={() => setShowForm('supporter')}>+ Add Supporter</button>
+          <button className="dp-add-btn" onClick={() => setFormState({ mode: 'add-supporter' })}>+ Add Supporter</button>
         )}
         {tab === 'donations' && (
-          <button className="dp-add-btn" onClick={() => setShowForm('donation')}>+ Add Donation</button>
+          <button className="dp-add-btn" onClick={() => setFormState({ mode: 'add-donation' })}>+ Add Donation</button>
         )}
       </div>
 
