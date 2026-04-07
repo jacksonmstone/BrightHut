@@ -17,6 +17,16 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
   return res.json();
 }
 
+function parseApiError(b: unknown, status: number, path: string): string {
+  if (b && typeof b === 'object') {
+    const o = b as Record<string, unknown>
+    if (typeof o.error === 'string') return o.error
+    if (typeof o.detail === 'string') return o.detail
+    if (typeof o.title === 'string') return o.title
+  }
+  return `API error ${status}: ${path}`
+}
+
 export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     method: 'POST',
@@ -25,7 +35,7 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   });
   if (!res.ok) {
     const b = await res.json().catch(() => ({}));
-    throw new Error((b as { error?: string }).error ?? `API error ${res.status}: ${path}`);
+    throw new Error(parseApiError(b, res.status, path));
   }
   return res.json();
 }
@@ -38,6 +48,6 @@ export async function apiPut(path: string, body: unknown): Promise<void> {
   });
   if (!res.ok) {
     const b = await res.json().catch(() => ({}));
-    throw new Error((b as { error?: string }).error ?? `API error ${res.status}: ${path}`);
+    throw new Error(parseApiError(b, res.status, path));
   }
 }

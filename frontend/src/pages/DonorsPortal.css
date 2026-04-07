@@ -178,6 +178,11 @@
   align-items: center;
 }
 
+.donor-name-val {
+  font-weight: 600;
+  color: var(--primary-dark);
+}
+
 .dp-edit-btn {
   background: none;
   border: none;

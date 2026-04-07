@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getDonations, getDonationAllocations, getInKindDonationItems } from '../api/donations'
 import { getSupporters } from '../api/supporters'
@@ -86,15 +86,26 @@ export default function DonorsPortal() {
     return matchSearch
   })
 
+  const supporterMap = useMemo(() => {
+    const m = new Map<number, string>()
+    for (const s of data.supporters) {
+      m.set(Number(s.supporter_id), String(s.display_name ?? ''))
+    }
+    return m
+  }, [data.supporters])
+
   const handleSave = async (d: Record<string, unknown>) => {
     if (!formState) return
+    console.log('[DonorsPortal] handleSave mode:', formState.mode, 'data:', d)
     if (formState.mode === 'add-supporter') {
       await insertRow('supporters', d)
     } else if (formState.mode === 'add-donation') {
       await insertRow('donations', { ...d, currency_code: d.currency_code || 'PHP' })
     } else if (formState.mode === 'edit-supporter' && formState.record) {
+      console.log('[DonorsPortal] updating supporter id:', formState.record.supporter_id)
       await updateRow('supporters', Number(formState.record.supporter_id), d)
     } else if (formState.mode === 'edit-donation' && formState.record) {
+      console.log('[DonorsPortal] updating donation id:', formState.record.donation_id)
       await updateRow('donations', Number(formState.record.donation_id), d)
     }
     setRefreshKey(k => k + 1)
@@ -102,7 +113,8 @@ export default function DonorsPortal() {
 
   const renderCard = (r: Row, i: number) => {
     switch (tab) {
-      case 'donations':
+      case 'donations': {
+        const donorName = supporterMap.get(Number(r.supporter_id)) || '—'
         return (
           <div key={i} className="donor-card">
             <div className="donor-card-header">
@@ -111,6 +123,7 @@ export default function DonorsPortal() {
               <button className="dp-edit-btn" onClick={() => setFormState({ mode: 'edit-donation', record: r })}>Edit</button>
             </div>
             <div className="donor-card-body">
+              <div className="donor-field"><span className="field-label">Donor</span><span className="donor-name-val">{donorName}</span></div>
               <div className="donor-field"><span className="field-label">Channel</span><span>{String(r.channel_source ?? '—')}</span></div>
               {!!r.amount && <div className="donor-field"><span className="field-label">Amount</span><span>{formatUsd(phpToUsd(Number(r.amount)))}</span></div>}
               {!!r.campaign_name && <div className="donor-field"><span className="field-label">Campaign</span><span>{String(r.campaign_name)}</span></div>}
@@ -118,6 +131,7 @@ export default function DonorsPortal() {
             </div>
           </div>
         )
+      }
       case 'supporters':
         return (
           <div key={i} className="donor-card">
