@@ -26,7 +26,7 @@
 .impact-hero-card {
   width: 100%;
   max-width: 980px;
-  background: linear-gradient(135deg, var(--bg-white) 55%, var(--primary-light) 100%);
+  background: linear-gradient(135deg, rgba(255,255,255,0.92) 55%, var(--primary-light) 100%);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
@@ -192,7 +192,7 @@
   height: 120px;
   border-radius: 10px;
   background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dark) 100%);
-  box-shadow: 0 10px 24px rgba(74, 111, 168, 0.14);
+  box-shadow: 0 14px 30px rgba(210, 162, 58, 0.20);
 }
 
 .impact-bar-label {

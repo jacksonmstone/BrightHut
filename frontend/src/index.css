@@ -1,21 +1,21 @@
 :root {
-  /* Philippine flag — blue, red, gold — softened for a gentle professional look */
-  --primary: #4a6fa8;       /* muted royal blue */
-  --primary-dark: #3457a0;
-  --primary-light: #eaeff8;
-  --secondary: #b85c5c;     /* muted red */
-  --secondary-light: #f8ecec;
-  --accent: #c9a234;        /* muted golden yellow (sun) */
-  --accent-light: #fdf6e0;
+  /* Lovable-inspired warm, donor-friendly palette */
+  --primary: #d2a23a;       /* warm gold */
+  --primary-dark: #b7841f;
+  --primary-light: #fff4da; /* soft gold wash */
+  --secondary: #2f3c57;     /* deep slate for contrast */
+  --secondary-light: #eef1f6;
+  --accent: #d2a23a;        /* keep accent aligned with CTA */
+  --accent-light: #fff6e6;
 
-  --bg: #f9f8f6;            /* warm white */
+  --bg: #fbf6ee;            /* warm beige */
   --bg-white: #ffffff;
-  --text: #2d3748;
-  --text-muted: #718096;
-  --border: #e2e8f0;
+  --text: #1f2430;
+  --text-muted: #6b7280;
+  --border: #eadfcd;
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
-  --shadow-hover: 0 8px 24px rgba(74, 111, 168, 0.18), 0 4px 8px rgba(0, 0, 0, 0.06);
+  --shadow-hover: 0 12px 30px rgba(31, 36, 48, 0.12), 0 6px 12px rgba(0, 0, 0, 0.06);
 
   --sans: 'Segoe UI', system-ui, Roboto, sans-serif;
   --radius: 10px;

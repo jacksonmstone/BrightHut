@@ -7,9 +7,10 @@
   justify-content: space-between;
   padding: 0 40px;
   height: 64px;
-  background: var(--bg-white);
-  border-bottom: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
+  background: rgba(255, 255, 255, 0.86);
+  border-bottom: 1px solid rgba(234, 223, 205, 0.9);
+  box-shadow: 0 8px 18px rgba(31, 36, 48, 0.06);
+  backdrop-filter: blur(10px);
 }
 
 .navbar-brand {
@@ -48,19 +49,20 @@
 }
 
 .nav-btn-login {
-  padding: 8px 22px;
-  border-radius: var(--radius-sm);
-  border: 1.5px solid var(--primary);
-  background: transparent;
-  color: var(--primary);
+  padding: 9px 18px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(234, 223, 205, 0.9);
+  background: var(--primary);
+  color: #fff;
   font-size: 15px;
-  font-weight: 500;
-  transition: background 0.2s, color 0.2s;
+  font-weight: 650;
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+  box-shadow: 0 10px 20px rgba(210, 162, 58, 0.22);
 }
 
 .nav-btn-login:hover {
-  background: var(--primary);
-  color: #fff;
+  background: var(--primary-dark);
+  transform: translateY(-1px);
 }
 
 .nav-btn-logout {
