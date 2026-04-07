@@ -63,6 +63,22 @@
   color: #fff;
 }
 
+.nav-btn-logout {
+  padding: 8px 22px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--text-muted);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 15px;
+  font-weight: 500;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.nav-btn-logout:hover {
+  border-color: var(--danger, #e53e3e);
+  color: var(--danger, #e53e3e);
+}
+
 @media (max-width: 600px) {
   .navbar {
     padding: 0 20px;
