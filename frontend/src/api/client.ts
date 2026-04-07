@@ -79,16 +79,6 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
   )
 }
 
-function parseApiError(b: unknown, status: number, path: string): string {
-  if (b && typeof b === 'object') {
-    const o = b as Record<string, unknown>
-    if (typeof o.error === 'string') return o.error
-    if (typeof o.detail === 'string') return o.detail
-    if (typeof o.title === 'string') return o.title
-  }
-  return `API error ${status}: ${path}`
-}
-
 export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   return apiFetch<T>(path, {
     method: 'POST',
