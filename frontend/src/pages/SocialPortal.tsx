@@ -12,7 +12,7 @@ export default function SocialPortal() {
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [platformFilter, setPlatformFilter] = useState('All')
-  const [visible, setVisible] = useState(6)
+  const [visible, setVisible] = useState(12)
   const [activePost, setActivePost] = useState<Post | null>(null)
 
   useEffect(() => {

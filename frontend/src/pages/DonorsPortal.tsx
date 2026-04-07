@@ -23,7 +23,7 @@ export default function DonorsPortal() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
-  const [visible, setVisible] = useState(6)
+  const [visible, setVisible] = useState(12)
 
   useEffect(() => {
     Promise.all([
@@ -135,7 +135,7 @@ export default function DonorsPortal() {
           <button
             key={t.id}
             className={`tab-btn ${tab === t.id ? 'active' : ''}`}
-            onClick={() => { setTab(t.id); setSearch(''); setVisible(6) }}
+            onClick={() => { setTab(t.id); setSearch(''); setVisible(12) }}
           >
             {t.label}
             <span className="tab-count">{data[t.id].length}</span>

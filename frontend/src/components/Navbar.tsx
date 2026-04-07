@@ -6,6 +6,7 @@ import brandLogo from '../assets/Brighthut-logo.png'
 export default function Navbar() {
   const navigate = useNavigate()
   const [loggedIn, setLoggedIn] = useState(!!localStorage.getItem('token'))
+  const isStaff = localStorage.getItem('role') === 'staff'
 
   useEffect(() => {
     const sync = () => setLoggedIn(!!localStorage.getItem('token'))
@@ -22,7 +23,7 @@ export default function Navbar() {
     localStorage.removeItem('role')
     localStorage.removeItem('email')
     setLoggedIn(false)
-    navigate('/login')
+    navigate('/')
   }
 
   return (
@@ -34,15 +35,18 @@ export default function Navbar() {
       <div className="navbar-links">
         <Link to="/about" className="nav-link">About Us</Link>
         <Link to="/impact" className="nav-link">Impact</Link>
-        <Link to="/privacy" className="nav-link">Privacy</Link>
+        {!loggedIn && <Link to="/privacy" className="nav-link">Privacy</Link>}
+        {loggedIn && (
+          <>
+            {isStaff && <Link to="/social" className="nav-link">Social Media</Link>}
+            <Link to="/donors" className="nav-link">{isStaff ? 'Donors' : 'My Contributions'}</Link>
+            {isStaff && <Link to="/participants" className="nav-link">Participants</Link>}
+          </>
+        )}
         {loggedIn ? (
-          <button className="nav-btn-logout" onClick={handleLogout}>
-            Log Out
-          </button>
+          <button className="nav-btn-logout" onClick={handleLogout}>Log Out</button>
         ) : (
-          <button className="nav-btn-login" onClick={() => navigate('/login')}>
-            Login
-          </button>
+          <button className="nav-btn-login" onClick={() => navigate('/login')}>Login</button>
         )}
       </div>
     </nav>

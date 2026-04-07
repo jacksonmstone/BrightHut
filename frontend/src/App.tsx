@@ -8,13 +8,16 @@ import AboutUs from './pages/AboutUs'
 import SocialPortal from './pages/SocialPortal'
 import DonatePaymentPage from './pages/DonatePaymentPage'
 import DonorsPortal from './pages/DonorsPortal'
+import MyContributions from './pages/MyContributions'
 import ParticipantsPortal from './pages/ParticipantsPortal'
 import Impact from './pages/Impact'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 
-function RequireAuth({ children }: { children: React.ReactNode }) {
+function RequireAuth({ children, staffOnly = false }: { children: React.ReactNode; staffOnly?: boolean }) {
   const token = localStorage.getItem('token')
+  const role = localStorage.getItem('role')
   if (!token) return <Navigate to="/login" replace />
+  if (staffOnly && role !== 'staff') return <Navigate to="/donors" replace />
   return <>{children}</>
 }
 
@@ -33,9 +36,9 @@ function App() {
         <Route path="/privacy" element={<PrivacyPolicy />} />
 
         {/* Protected — must be logged in */}
-        <Route path="/social" element={<RequireAuth><SocialPortal /></RequireAuth>} />
-        <Route path="/donors" element={<RequireAuth><DonorsPortal /></RequireAuth>} />
-        <Route path="/participants" element={<RequireAuth><ParticipantsPortal /></RequireAuth>} />
+        <Route path="/social" element={<RequireAuth staffOnly><SocialPortal /></RequireAuth>} />
+        <Route path="/donors" element={<RequireAuth>{localStorage.getItem('role') === 'staff' ? <DonorsPortal /> : <MyContributions />}</RequireAuth>} />
+        <Route path="/participants" element={<RequireAuth staffOnly><ParticipantsPortal /></RequireAuth>} />
       </Routes>
       <CookieBanner />
     </BrowserRouter>
