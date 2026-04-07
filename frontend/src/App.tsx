@@ -9,6 +9,7 @@ import SocialPortal from './pages/SocialPortal'
 import DonatePaymentPage from './pages/DonatePaymentPage'
 import DonorsPortal from './pages/DonorsPortal'
 import ParticipantsPortal from './pages/ParticipantsPortal'
+import Impact from './pages/Impact'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
         <Route path="/create-account" element={<CreateAccount />} />
         <Route path="/about" element={<AboutUs />} />
         <Route path="/social" element={<SocialPortal />} />
+        <Route path="/impact" element={<Impact />} />
         <Route path="/donate/payment" element={<DonatePaymentPage />} />
         <Route path="/donors" element={<DonorsPortal />} />
         <Route path="/participants" element={<ParticipantsPortal />} />
