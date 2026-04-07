@@ -43,7 +43,9 @@ export default function FormModal({ title, fields, initialData, onSave, onClose 
       await onSave(values)
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Save failed.')
+      const msg = err instanceof Error ? err.message : 'Save failed.'
+      console.error('[FormModal] save error:', err)
+      setError(msg)
       setSaving(false)
     }
   }
@@ -57,6 +59,7 @@ export default function FormModal({ title, fields, initialData, onSave, onClose 
         </div>
         <form onSubmit={handleSubmit}>
           <div className="fm-body">
+            {error && <p className="fm-error">{error}</p>}
             {fields.map(f => (
               <div key={f.key} className="fm-field">
                 <label className="fm-label" htmlFor={`fm-${f.key}`}>
@@ -108,7 +111,6 @@ export default function FormModal({ title, fields, initialData, onSave, onClose 
                 )}
               </div>
             ))}
-            {error && <p className="fm-error">{error}</p>}
           </div>
           <div className="fm-footer">
             <button type="button" className="fm-btn fm-btn--cancel" onClick={onClose}>Cancel</button>
