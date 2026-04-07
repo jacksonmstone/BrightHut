@@ -6,7 +6,8 @@ import brandLogo from '../assets/Brighthut-logo.png'
 export default function Navbar() {
   const navigate = useNavigate()
   const [loggedIn, setLoggedIn] = useState(!!localStorage.getItem('token'))
-  const isStaff = localStorage.getItem('role') === 'staff'
+  const role = (localStorage.getItem('role') ?? '').toLowerCase()
+  const isStaffLike = role === 'staff' || role === 'admin'
 
   useEffect(() => {
     const sync = () => setLoggedIn(!!localStorage.getItem('token'))
@@ -35,14 +36,14 @@ export default function Navbar() {
       <div className="navbar-links">
         <Link to="/about" className="nav-link">About Us</Link>
         <Link to="/impact" className="nav-link">Impact</Link>
+        <Link to="/social" className="nav-link">Social Media</Link>
         {!loggedIn && <Link to="/privacy" className="nav-link">Privacy</Link>}
         {loggedIn && (
           <>
-            {isStaff && <Link to="/dashboard" className="nav-link">Dashboard</Link>}
-            {isStaff && <Link to="/social" className="nav-link">Social Media</Link>}
-            <Link to="/donors" className="nav-link">{isStaff ? 'Donors' : 'My Contributions'}</Link>
-            {isStaff && <Link to="/participants" className="nav-link">Participants</Link>}
-            {isStaff && <Link to="/analytics" className="nav-link">Analytics</Link>}
+            {isStaffLike && <Link to="/dashboard" className="nav-link">Dashboard</Link>}
+            <Link to="/donors" className="nav-link">{isStaffLike ? 'Donors' : 'My Contributions'}</Link>
+            {isStaffLike && <Link to="/participants" className="nav-link">Participants</Link>}
+            {isStaffLike && <Link to="/analytics" className="nav-link">Analytics</Link>}
           </>
         )}
         {loggedIn ? (

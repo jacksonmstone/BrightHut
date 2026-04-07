@@ -38,8 +38,11 @@ export default function Home() {
   const navigate = useNavigate()
   const location = useLocation()
   const loggedIn = !!localStorage.getItem('token')
-  const isStaff = localStorage.getItem('role') === 'staff'
-  const portals = isStaff ? privatePortals : privatePortals.filter(p => p.path === '/donors')
+  const role = (localStorage.getItem('role') ?? '').toLowerCase()
+  const isStaffLike = role === 'staff' || role === 'admin'
+  const portals = isStaffLike
+    ? privatePortals
+    : privatePortals.filter((p) => ['/donors', '/social'].includes(p.path))
 
   // Support links like /#donate
   // Keeps the grid layout fixed; scrolls to the section the user asked for.
@@ -81,7 +84,7 @@ export default function Home() {
               </div>
             </>
           )}
-          {loggedIn && !isStaff && (
+          {loggedIn && !isStaffLike && (
             <>
               <span className="hero-tag">Welcome back</span>
               <h1 className="hero-title">
@@ -101,7 +104,7 @@ export default function Home() {
               </div>
             </>
           )}
-          {loggedIn && isStaff && (
+          {loggedIn && isStaffLike && (
             <>
               <span className="hero-tag">Admin Dashboard</span>
               <h1 className="hero-title">
@@ -122,8 +125,12 @@ export default function Home() {
       {loggedIn && (
         <section className="portals-section">
           <div className="portals-header">
-            <h2>{isStaff ? 'Where would you like to go?' : 'Access My Donation History'}</h2>
-            <p className="portals-subtitle">{isStaff ? 'Select a portal to get started' : 'View your contributions and see the impact of your giving'}</p>
+            <h2>{isStaffLike ? 'Where would you like to go?' : 'Access My Donation History'}</h2>
+            <p className="portals-subtitle">
+              {isStaffLike
+                ? 'Select a portal to get started'
+                : 'View your contributions and see the impact of your giving'}
+            </p>
           </div>
           <div className="portals-grid">
             {portals.map((portal) => (

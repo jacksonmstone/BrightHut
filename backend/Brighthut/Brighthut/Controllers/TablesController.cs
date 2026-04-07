@@ -18,6 +18,8 @@ public class TablesController : ControllerBase
         "safehouse_monthly_metrics",
         // Anonymous totals / progress on the public site (landing + Impact); no per-donor filtering.
         "donations",
+        // Public marketing feed on /social (same content shown to staff).
+        "social_media_posts",
     ];
 
     private static readonly HashSet<string> DonorReadableTables =

@@ -39,9 +39,9 @@ function App() {
         <Route path="/impact" element={<Impact />} />
         <Route path="/donate/payment" element={<DonatePaymentPage />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/social" element={<SocialPortal />} />
 
         {/* Protected — must be logged in */}
-        <Route path="/social" element={<RequireAuth roles={['staff', 'admin']}><SocialPortal /></RequireAuth>} />
         <Route path="/dashboard" element={<RequireAuth roles={['staff', 'admin']}><AdminDashboard /></RequireAuth>} />
         <Route
           path="/donors"
