@@ -89,7 +89,7 @@
 }
 
 .mc-donate-btn--secondary:hover {
-  background: #9a6e18;
+  background: var(--primary);
 }
 
 .mc-header h1 {
