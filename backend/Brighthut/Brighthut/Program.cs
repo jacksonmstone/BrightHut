@@ -37,6 +37,13 @@ builder.Services.AddSingleton<SqliteDataService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddHsts(options =>
+{
+    // 1 year HSTS policy for production traffic.
+    options.MaxAge = TimeSpan.FromDays(365);
+    options.IncludeSubDomains = true;
+    options.Preload = true;
+});
 
 if (authEnabled)
 {
@@ -78,6 +85,7 @@ if (app.Environment.IsDevelopment())
 
 if (!app.Environment.IsDevelopment())
 {
+    app.UseHsts();
     app.UseHttpsRedirection();
 }
 if (allowedOrigins.Length > 0)

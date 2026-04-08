@@ -1,8 +1,11 @@
 using Brighthut.Services;
+using Google.Apis.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.Sqlite;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Cryptography;
 using System.Security.Claims;
 using System.Text;
 
@@ -19,6 +22,51 @@ public class AuthController : ControllerBase
     {
         _config = config;
         _factory = factory;
+        _factory = factory;
+        EnsureTwoFactorColumns();
+        EnsureGoogleAuthColumns();
+    }
+
+    private void EnsureTwoFactorColumns()
+    {
+        using var conn = _factory.CreateConnection();
+        conn.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"
+            ALTER TABLE users ADD COLUMN two_factor_secret TEXT;
+            ALTER TABLE users ADD COLUMN two_factor_enabled INTEGER NOT NULL DEFAULT 0;";
+        try
+        {
+            cmd.ExecuteNonQuery();
+        }
+        catch
+        {
+            // Columns likely already exist; ignore.
+        }
+    }
+
+    private void EnsureGoogleAuthColumns()
+    {
+        using var conn = _factory.CreateConnection();
+        conn.Open();
+
+        using (var providerCmd = conn.CreateCommand())
+        {
+            providerCmd.CommandText = "ALTER TABLE users ADD COLUMN auth_provider TEXT NOT NULL DEFAULT 'local'";
+            try { providerCmd.ExecuteNonQuery(); } catch { }
+        }
+
+        using (var subCmd = conn.CreateCommand())
+        {
+            subCmd.CommandText = "ALTER TABLE users ADD COLUMN google_sub TEXT";
+            try { subCmd.ExecuteNonQuery(); } catch { }
+        }
+
+        using (var completeCmd = conn.CreateCommand())
+        {
+            completeCmd.CommandText = "ALTER TABLE users ADD COLUMN google_profile_completed INTEGER NOT NULL DEFAULT 0";
+            try { completeCmd.ExecuteNonQuery(); } catch { }
+        }
     }
 
     // POST /api/auth/register
@@ -109,8 +157,8 @@ public class AuthController : ControllerBase
         conn.Open();
 
         using var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT user_id, password_hash, role, is_active, first_name FROM users WHERE email = @email";
-        DbConnectionFactory.Bind(cmd, "@email", req.Email.ToLower());
+        cmd.CommandText = "SELECT user_id, password_hash, role, is_active, first_name, two_factor_enabled, two_factor_secret FROM users WHERE email = @email";
+    DbConnectionFactory.Bind(cmd, "@email", req.Email.ToLower());
 
         using var reader = cmd.ExecuteReader();
         if (!reader.Read())
@@ -121,6 +169,8 @@ public class AuthController : ControllerBase
         var role = reader.GetString(2);
         var isActive = Convert.ToInt64(reader.GetValue(3));
         var firstName = reader.IsDBNull(4) ? null : reader.GetString(4);
+        var twoFactorEnabled = !reader.IsDBNull(5) && reader.GetInt64(5) == 1;
+        var twoFactorSecret = reader.IsDBNull(6) ? null : reader.GetString(6);
 
         if (isActive == 0)
             return Unauthorized(new { error = "Account is inactive." });
@@ -128,8 +178,494 @@ public class AuthController : ControllerBase
         if (!BCrypt.Net.BCrypt.Verify(req.Password, storedHash))
             return Unauthorized(new { error = "Invalid email or password." });
 
-        var token = GenerateToken(userId, req.Email.ToLower(), role);
-        return Ok(new { token, role, email = req.Email.ToLower(), firstName });
+        var normalizedEmail = req.Email.Trim().ToLowerInvariant();
+
+        if (!twoFactorEnabled && !IsTwoFactorEnrollmentExempt(normalizedEmail))
+        {
+            var setupToken = GenerateTwoFactorSetupToken(userId, normalizedEmail);
+            return Ok(new
+            {
+                requires2faSetup = true,
+                setupToken,
+                email = normalizedEmail,
+            });
+        }
+
+        if (twoFactorEnabled)
+        {
+            if (string.IsNullOrWhiteSpace(req.TwoFactorCode))
+                return Ok(new { requires2fa = true, email = normalizedEmail });
+
+            if (string.IsNullOrWhiteSpace(twoFactorSecret) || !VerifyTotpCode(twoFactorSecret, req.TwoFactorCode))
+                return Unauthorized(new { error = "Invalid authentication code." });
+        }
+
+        var token = GenerateToken(userId, normalizedEmail, role);
+        return Ok(new { token, role, email = normalizedEmail, firstName, requires2fa = false, requires2faSetup = false });
+    }
+
+    // POST /api/auth/google
+    [AllowAnonymous]
+    [HttpPost("google")]
+    public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.IdToken))
+            return BadRequest(new { error = "Google ID token is required." });
+
+        if (!string.IsNullOrWhiteSpace(req.SupporterType) && !TryNormalizeSupporterType(req.SupporterType, out _))
+            return BadRequest(new { error = "Invalid account type for Google sign-in." });
+
+        var configuredGoogleClientId =
+            Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID")
+            ?? _config["GoogleAuth:ClientId"];
+
+        if (string.IsNullOrWhiteSpace(configuredGoogleClientId))
+            return Problem(
+                detail: "Google sign-in is not configured on the server. Set GOOGLE_CLIENT_ID.",
+                statusCode: StatusCodes.Status503ServiceUnavailable);
+
+        GoogleJsonWebSignature.Payload payload;
+        try
+        {
+            payload = await GoogleJsonWebSignature.ValidateAsync(
+                req.IdToken,
+                new GoogleJsonWebSignature.ValidationSettings
+                {
+                    Audience = [configuredGoogleClientId],
+                });
+        }
+        catch
+        {
+            return Unauthorized(new { error = "Invalid Google sign-in token." });
+        }
+
+        if (!payload.EmailVerified)
+            return Unauthorized(new { error = "Google account email is not verified." });
+
+        var normalizedEmail = payload.Email.Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(normalizedEmail))
+            return Unauthorized(new { error = "Google account email is missing." });
+
+        var normalizedSupporterType = TryNormalizeSupporterType(req.SupporterType, out var supporterType)
+            ? supporterType
+            : null;
+
+        var (userId, role, isActive, firstName, twoFactorEnabled, twoFactorSecret, requiresSupporterTypeSelection) =
+            EnsureUserForGoogleLogin(normalizedEmail, payload.GivenName, payload.FamilyName, payload.Name, payload.Subject, normalizedSupporterType);
+
+        if (requiresSupporterTypeSelection)
+        {
+            return Ok(new
+            {
+                requiresAccountTypeSelection = true,
+                email = normalizedEmail,
+                firstName,
+            });
+        }
+
+        if (!isActive)
+            return Unauthorized(new { error = "Account is inactive." });
+
+        if (!twoFactorEnabled && !IsTwoFactorEnrollmentExempt(normalizedEmail))
+        {
+            var setupToken = GenerateTwoFactorSetupToken(userId, normalizedEmail);
+            return Ok(new
+            {
+                requires2faSetup = true,
+                setupToken,
+                email = normalizedEmail,
+            });
+        }
+
+        if (twoFactorEnabled)
+        {
+            if (string.IsNullOrWhiteSpace(req.TwoFactorCode))
+                return Ok(new { requires2fa = true, email = normalizedEmail });
+
+            if (string.IsNullOrWhiteSpace(twoFactorSecret) || !VerifyTotpCode(twoFactorSecret, req.TwoFactorCode))
+                return Unauthorized(new { error = "Invalid authentication code." });
+        }
+
+        var token = GenerateToken(userId, normalizedEmail, role);
+        return Ok(new
+        {
+            token,
+            role,
+            email = normalizedEmail,
+            firstName,
+            requires2fa = false,
+            requires2faSetup = false,
+        });
+    }
+
+    private (long UserId, string Role, bool IsActive, string? FirstName, bool TwoFactorEnabled, string? TwoFactorSecret, bool RequiresSupporterTypeSelection)
+        EnsureUserForGoogleLogin(string email, string? givenName, string? familyName, string? displayName, string? googleSub, string? selectedSupporterType)
+    {
+        using var conn = new SqliteConnection(_connStr);
+        conn.Open();
+
+        using (var find = conn.CreateCommand())
+        {
+            find.CommandText = @"
+                SELECT user_id, role, is_active, first_name, two_factor_enabled, two_factor_secret, supporter_type,
+                       auth_provider, google_sub, google_profile_completed
+                FROM users
+                WHERE lower(email) = @email
+                LIMIT 1";
+            find.Parameters.AddWithValue("@email", email);
+
+            using var reader = find.ExecuteReader();
+            if (reader.Read())
+            {
+                var userId = reader.GetInt64(0);
+                var role = reader.GetString(1);
+                var isActive = reader.GetInt64(2) == 1;
+                var firstName = reader.IsDBNull(3) ? null : reader.GetString(3);
+                var twoFactorEnabled = !reader.IsDBNull(4) && reader.GetInt64(4) == 1;
+                var twoFactorSecret = reader.IsDBNull(5) ? null : reader.GetString(5);
+                var supporterType = reader.IsDBNull(6) ? null : reader.GetString(6);
+                var authProvider = reader.IsDBNull(7) ? "local" : reader.GetString(7);
+                var existingGoogleSub = reader.IsDBNull(8) ? null : reader.GetString(8);
+                var googleProfileCompleted = !reader.IsDBNull(9) && reader.GetInt64(9) == 1;
+
+                if (authProvider == "google" && string.IsNullOrWhiteSpace(existingGoogleSub) && !string.IsNullOrWhiteSpace(googleSub))
+                {
+                    using var bindSub = conn.CreateCommand();
+                    bindSub.CommandText = "UPDATE users SET google_sub = @googleSub WHERE user_id = @userId";
+                    bindSub.Parameters.AddWithValue("@googleSub", googleSub);
+                    bindSub.Parameters.AddWithValue("@userId", userId);
+                    bindSub.ExecuteNonQuery();
+                }
+
+                if (authProvider == "google" && (!googleProfileCompleted || string.IsNullOrWhiteSpace(supporterType)))
+                {
+                    if (string.IsNullOrWhiteSpace(selectedSupporterType))
+                    {
+                        return (userId, role, isActive, firstName, twoFactorEnabled, twoFactorSecret, true);
+                    }
+
+                    using var completeProfile = conn.CreateCommand();
+                    completeProfile.CommandText = @"
+                        UPDATE users
+                        SET supporter_type = @supporterType,
+                            relationship_type = @relationshipType,
+                            google_profile_completed = 1
+                        WHERE user_id = @userId";
+                    completeProfile.Parameters.AddWithValue("@supporterType", selectedSupporterType);
+                    completeProfile.Parameters.AddWithValue("@relationshipType", DefaultRelationshipTypeFor(selectedSupporterType));
+                    completeProfile.Parameters.AddWithValue("@userId", userId);
+                    completeProfile.ExecuteNonQuery();
+                }
+
+                return (
+                    userId,
+                    role,
+                    isActive,
+                    firstName,
+                    twoFactorEnabled,
+                    twoFactorSecret,
+                    false);
+            }
+        }
+
+        var inferredFirstName = !string.IsNullOrWhiteSpace(givenName)
+            ? givenName.Trim()
+            : (!string.IsNullOrWhiteSpace(displayName) ? displayName.Trim().Split(' ')[0] : null);
+        var lastName = !string.IsNullOrWhiteSpace(familyName) ? familyName.Trim() : null;
+
+        if (string.IsNullOrWhiteSpace(selectedSupporterType))
+        {
+            using var insertPending = conn.CreateCommand();
+            insertPending.CommandText = @"
+                INSERT INTO users
+                  (email, password_hash, role, first_name, last_name, supporter_type, relationship_type,
+                   acquisition_channel, is_active, auth_provider, google_sub, google_profile_completed)
+                VALUES
+                  (@email, @passwordHash, 'donor', @firstName, @lastName, NULL, NULL,
+                   'GoogleOAuth', 1, 'google', @googleSub, 0);
+                SELECT last_insert_rowid();";
+            insertPending.Parameters.AddWithValue("@email", email);
+            insertPending.Parameters.AddWithValue("@passwordHash", BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString("N") + "#GoogleOnly"));
+            insertPending.Parameters.AddWithValue("@firstName", (object?)inferredFirstName ?? DBNull.Value);
+            insertPending.Parameters.AddWithValue("@lastName", (object?)lastName ?? DBNull.Value);
+            insertPending.Parameters.AddWithValue("@googleSub", (object?)googleSub ?? DBNull.Value);
+            var pendingUserId = (long)(insertPending.ExecuteScalar() ?? 0L);
+            return (pendingUserId, "donor", true, inferredFirstName, false, null, true);
+        }
+
+        var placeholderPasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString("N") + "#GoogleOnly");
+
+        using (var insert = conn.CreateCommand())
+        {
+            insert.CommandText = @"
+                INSERT INTO users
+                                    (email, password_hash, role, first_name, last_name, supporter_type, relationship_type,
+                                     acquisition_channel, is_active, auth_provider, google_sub, google_profile_completed)
+                VALUES
+                                    (@email, @passwordHash, 'donor', @firstName, @lastName, @supporterType, @relationshipType,
+                                     'GoogleOAuth', 1, 'google', @googleSub, 1);
+                SELECT last_insert_rowid();";
+            insert.Parameters.AddWithValue("@email", email);
+            insert.Parameters.AddWithValue("@passwordHash", placeholderPasswordHash);
+            insert.Parameters.AddWithValue("@firstName", (object?)inferredFirstName ?? DBNull.Value);
+            insert.Parameters.AddWithValue("@lastName", (object?)lastName ?? DBNull.Value);
+            insert.Parameters.AddWithValue("@supporterType", selectedSupporterType);
+            insert.Parameters.AddWithValue("@relationshipType", DefaultRelationshipTypeFor(selectedSupporterType));
+                        insert.Parameters.AddWithValue("@googleSub", (object?)googleSub ?? DBNull.Value);
+            var userId = (long)(insert.ExecuteScalar() ?? 0L);
+            return (userId, "donor", true, inferredFirstName, false, null, false);
+        }
+    }
+
+    private static bool TryNormalizeSupporterType(string? rawSupporterType, out string supporterType)
+    {
+        supporterType = string.Empty;
+        if (string.IsNullOrWhiteSpace(rawSupporterType))
+            return false;
+
+        supporterType = rawSupporterType.Trim();
+        return supporterType is
+            "MonetaryDonor"
+            or "InKindDonor"
+            or "Volunteer"
+            or "SkillsContributor"
+            or "SocialMediaAdvocate"
+            or "PartnerOrganization";
+    }
+
+    private static string DefaultRelationshipTypeFor(string supporterType)
+    {
+        return supporterType == "PartnerOrganization"
+            ? "PartnerOrganization"
+            : "Local";
+    }
+
+    // GET /api/auth/2fa/status
+    [HttpGet("2fa/status")]
+    [Authorize]
+    public IActionResult TwoFactorStatus()
+    {
+        var email = User.FindFirstValue(JwtRegisteredClaimNames.Email)
+            ?? User.FindFirstValue(ClaimTypes.Email);
+        if (string.IsNullOrWhiteSpace(email))
+            return Unauthorized(new { error = "Invalid token claims." });
+
+        using var conn = new SqliteConnection(_connStr);
+        conn.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT two_factor_enabled FROM users WHERE lower(email) = @email LIMIT 1";
+        cmd.Parameters.AddWithValue("@email", email.Trim().ToLowerInvariant());
+        var enabled = Convert.ToInt64(cmd.ExecuteScalar() ?? 0L) == 1L;
+        return Ok(new { enabled });
+    }
+
+    // POST /api/auth/2fa/setup
+    [HttpPost("2fa/setup")]
+    [Authorize]
+    public IActionResult SetupTwoFactor()
+    {
+        var email = User.FindFirstValue(JwtRegisteredClaimNames.Email)
+            ?? User.FindFirstValue(ClaimTypes.Email);
+        if (string.IsNullOrWhiteSpace(email))
+            return Unauthorized(new { error = "Invalid token claims." });
+
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+        var secret = GenerateBase32Secret();
+        var issuer = "BrightHut";
+        var otpauth = $"otpauth://totp/{Uri.EscapeDataString(issuer)}:{Uri.EscapeDataString(normalizedEmail)}?secret={secret}&issuer={Uri.EscapeDataString(issuer)}&algorithm=SHA1&digits=6&period=30";
+
+        using var conn = new SqliteConnection(_connStr);
+        conn.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"
+            UPDATE users
+            SET two_factor_secret = @secret,
+                two_factor_enabled = 0
+            WHERE lower(email) = @email";
+        cmd.Parameters.AddWithValue("@secret", secret);
+        cmd.Parameters.AddWithValue("@email", normalizedEmail);
+        var rows = cmd.ExecuteNonQuery();
+        if (rows == 0)
+            return NotFound(new { error = "User not found." });
+
+        return Ok(new { secret, otpauthUrl = otpauth });
+    }
+
+    // POST /api/auth/2fa/enable
+    [HttpPost("2fa/enable")]
+    [Authorize]
+    public IActionResult EnableTwoFactor([FromBody] TwoFactorCodeRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.Code))
+            return BadRequest(new { error = "2FA code is required." });
+
+        var email = User.FindFirstValue(JwtRegisteredClaimNames.Email)
+            ?? User.FindFirstValue(ClaimTypes.Email);
+        if (string.IsNullOrWhiteSpace(email))
+            return Unauthorized(new { error = "Invalid token claims." });
+
+        using var conn = new SqliteConnection(_connStr);
+        conn.Open();
+        using var get = conn.CreateCommand();
+        get.CommandText = "SELECT two_factor_secret FROM users WHERE lower(email) = @email LIMIT 1";
+        get.Parameters.AddWithValue("@email", email.Trim().ToLowerInvariant());
+        var secret = get.ExecuteScalar() as string;
+
+        if (string.IsNullOrWhiteSpace(secret))
+            return BadRequest(new { error = "Run 2FA setup first." });
+
+        if (!VerifyTotpCode(secret, req.Code))
+            return BadRequest(new { error = "Invalid authentication code." });
+
+        using var upd = conn.CreateCommand();
+        upd.CommandText = "UPDATE users SET two_factor_enabled = 1 WHERE lower(email) = @email";
+        upd.Parameters.AddWithValue("@email", email.Trim().ToLowerInvariant());
+        upd.ExecuteNonQuery();
+
+        return Ok(new { enabled = true });
+    }
+
+    // POST /api/auth/2fa/disable
+    [HttpPost("2fa/disable")]
+    [Authorize]
+    public IActionResult DisableTwoFactor([FromBody] TwoFactorCodeRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.Code))
+            return BadRequest(new { error = "2FA code is required." });
+
+        var email = User.FindFirstValue(JwtRegisteredClaimNames.Email)
+            ?? User.FindFirstValue(ClaimTypes.Email);
+        if (string.IsNullOrWhiteSpace(email))
+            return Unauthorized(new { error = "Invalid token claims." });
+
+        using var conn = new SqliteConnection(_connStr);
+        conn.Open();
+        using var get = conn.CreateCommand();
+        get.CommandText = "SELECT two_factor_secret, two_factor_enabled FROM users WHERE lower(email) = @email LIMIT 1";
+        get.Parameters.AddWithValue("@email", email.Trim().ToLowerInvariant());
+        using var reader = get.ExecuteReader();
+        if (!reader.Read())
+            return NotFound(new { error = "User not found." });
+
+        var secret = reader.IsDBNull(0) ? null : reader.GetString(0);
+        var enabled = !reader.IsDBNull(1) && reader.GetInt64(1) == 1;
+
+        if (!enabled || string.IsNullOrWhiteSpace(secret))
+            return Ok(new { enabled = false });
+
+        if (!VerifyTotpCode(secret, req.Code))
+            return BadRequest(new { error = "Invalid authentication code." });
+
+        using var upd = conn.CreateCommand();
+        upd.CommandText = "UPDATE users SET two_factor_enabled = 0, two_factor_secret = NULL WHERE lower(email) = @email";
+        upd.Parameters.AddWithValue("@email", email.Trim().ToLowerInvariant());
+        upd.ExecuteNonQuery();
+
+        return Ok(new { enabled = false });
+    }
+
+    private static string GenerateBase32Secret(int bytesLength = 20)
+    {
+        var bytes = RandomNumberGenerator.GetBytes(bytesLength);
+        return Base32Encode(bytes);
+    }
+
+    private static bool VerifyTotpCode(string base32Secret, string rawCode)
+    {
+        var code = new string(rawCode.Where(char.IsDigit).ToArray());
+        if (code.Length != 6)
+            return false;
+
+        var secretBytes = Base32Decode(base32Secret);
+        var unixTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var step = unixTime / 30;
+
+        for (long offset = -1; offset <= 1; offset++)
+        {
+            var generated = GenerateTotp(secretBytes, step + offset);
+            if (generated == code)
+                return true;
+        }
+
+        return false;
+    }
+
+    private static string GenerateTotp(byte[] secret, long timestep)
+    {
+        Span<byte> counter = stackalloc byte[8];
+        for (var i = 7; i >= 0; i--)
+        {
+            counter[i] = (byte)(timestep & 0xFF);
+            timestep >>= 8;
+        }
+
+        using var hmac = new HMACSHA1(secret);
+        var hash = hmac.ComputeHash(counter.ToArray());
+        var offset = hash[^1] & 0x0F;
+        var binaryCode = ((hash[offset] & 0x7F) << 24)
+                         | (hash[offset + 1] << 16)
+                         | (hash[offset + 2] << 8)
+                         | hash[offset + 3];
+        var otp = binaryCode % 1_000_000;
+        return otp.ToString("D6");
+    }
+
+    private static string Base32Encode(byte[] data)
+    {
+        const string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+        var output = new StringBuilder((data.Length + 4) / 5 * 8);
+        int bitBuffer = 0;
+        int bitCount = 0;
+
+        foreach (var b in data)
+        {
+            bitBuffer = (bitBuffer << 8) | b;
+            bitCount += 8;
+            while (bitCount >= 5)
+            {
+                var idx = (bitBuffer >> (bitCount - 5)) & 0x1F;
+                output.Append(alphabet[idx]);
+                bitCount -= 5;
+            }
+        }
+
+        if (bitCount > 0)
+        {
+            var idx = (bitBuffer << (5 - bitCount)) & 0x1F;
+            output.Append(alphabet[idx]);
+        }
+
+        return output.ToString();
+    }
+
+    private static byte[] Base32Decode(string input)
+    {
+        const string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+        var normalized = new string(input
+            .ToUpperInvariant()
+            .Where(c => c is >= 'A' and <= 'Z' or >= '2' and <= '7')
+            .ToArray());
+
+        var output = new List<byte>(normalized.Length * 5 / 8);
+        int bitBuffer = 0;
+        int bitCount = 0;
+
+        foreach (var c in normalized)
+        {
+            var val = alphabet.IndexOf(c);
+            if (val < 0)
+                continue;
+
+            bitBuffer = (bitBuffer << 5) | val;
+            bitCount += 5;
+            while (bitCount >= 8)
+            {
+                output.Add((byte)((bitBuffer >> (bitCount - 8)) & 0xFF));
+                bitCount -= 8;
+            }
+        }
+
+        return output.ToArray();
     }
 
     // GET /api/auth/me
@@ -203,6 +739,36 @@ public class AuthController : ControllerBase
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
+    private string GenerateTwoFactorSetupToken(long userId, string email)
+    {
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var expiry = DateTime.UtcNow.AddMinutes(10);
+
+        var claims = new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
+            new Claim(JwtRegisteredClaimNames.Email, email),
+            new Claim(ClaimTypes.Role, "mfa_setup"),
+            new Claim("purpose", "2fa_setup"),
+        };
+
+        var token = new JwtSecurityToken(
+            issuer: _config["Jwt:Issuer"],
+            audience: _config["Jwt:Audience"],
+            claims: claims,
+            expires: expiry,
+            signingCredentials: creds
+        );
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private static bool IsTwoFactorEnrollmentExempt(string normalizedEmail)
+    {
+        return normalizedEmail is "staff@brighthut.org" or "donor@brighthut.org";
+    }
 }
 
 public record RegisterRequest(
@@ -219,4 +785,6 @@ public record RegisterRequest(
     string? SupporterType
 );
 
-public record LoginRequest(string Email, string Password);
+public record TwoFactorCodeRequest(string Code);
+public record LoginRequest(string Email, string Password, string? TwoFactorCode);
+public record GoogleLoginRequest(string IdToken, string? TwoFactorCode, string? SupporterType);
