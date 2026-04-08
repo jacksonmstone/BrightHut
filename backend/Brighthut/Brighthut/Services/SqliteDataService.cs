@@ -1,10 +1,10 @@
-using Microsoft.Data.Sqlite;
+using Microsoft.Data.SqlClient;
 
 namespace Brighthut.Services;
 
 public sealed class SqliteDataService
 {
-    private readonly string _dbPath;
+    private readonly string _connStr;
 
     private static readonly HashSet<string> AllowedTables =
     [
@@ -48,9 +48,12 @@ public sealed class SqliteDataService
         ["public_impact_snapshots"] = "snapshot_id",
     };
 
-    public SqliteDataService()
+    public SqliteDataService(IConfiguration config)
     {
-        _dbPath = Path.Combine(AppContext.BaseDirectory, "brighthut.sqlite");
+        _connStr = config.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException(
+                "ConnectionStrings:DefaultConnection is not configured. " +
+                "Set CONNECTIONSTRINGS__DEFAULTCONNECTION in Azure App Service Configuration.");
     }
 
     public bool IsTableAllowed(string tableName) =>
@@ -64,10 +67,8 @@ public sealed class SqliteDataService
         if (!IsTableAllowed(tableName))
             throw new ArgumentException("Unknown table.", nameof(tableName));
 
-        EnsureDb();
-
         var results = new List<Dictionary<string, object?>>();
-        using var conn = new SqliteConnection($"Data Source={_dbPath}");
+        using var conn = new SqlConnection(_connStr);
         conn.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = $"SELECT * FROM {tableName}";
@@ -85,7 +86,6 @@ public sealed class SqliteDataService
     public long Insert(string tableName, Dictionary<string, object?> data)
     {
         if (!IsTableAllowed(tableName)) throw new ArgumentException("Unknown table.", nameof(tableName));
-        EnsureDb();
 
         var pk = GetPrimaryKey(tableName);
         data.Remove(pk);
@@ -93,22 +93,22 @@ public sealed class SqliteDataService
         var columns = data.Keys.ToList();
         var paramNames = columns.Select((_, i) => $"@p{i}").ToList();
 
-        using var conn = new SqliteConnection($"Data Source={_dbPath}");
+        using var conn = new SqlConnection(_connStr);
         conn.Open();
         using var cmd = conn.CreateCommand();
-        cmd.CommandText = $"INSERT INTO {tableName} ({string.Join(", ", columns)}) VALUES ({string.Join(", ", paramNames)}); SELECT last_insert_rowid();";
+        cmd.CommandText = $"INSERT INTO {tableName} ({string.Join(", ", columns)}) VALUES ({string.Join(", ", paramNames)}); SELECT SCOPE_IDENTITY();";
         for (var i = 0; i < columns.Count; i++)
             cmd.Parameters.AddWithValue($"@p{i}", data[columns[i]] ?? DBNull.Value);
 
-        return (long)(cmd.ExecuteScalar() ?? 0L);
+        return Convert.ToInt64(cmd.ExecuteScalar() ?? 0L);
     }
 
     public IReadOnlyList<Dictionary<string, object?>> QuerySupporterByEmail(string email)
     {
         const string sql = @"
-            SELECT *
+            SELECT TOP 1 *
             FROM supporters
-            WHERE lower(email) = @email;";
+            WHERE LOWER(email) = @email;";
 
         return QueryWithParameters(sql, parameters =>
         {
@@ -122,7 +122,7 @@ public sealed class SqliteDataService
             SELECT d.*
             FROM donations d
             INNER JOIN supporters s ON s.supporter_id = d.supporter_id
-            WHERE lower(s.email) = @email
+            WHERE LOWER(s.email) = @email
             ORDER BY d.donation_date DESC;";
 
         return QueryWithParameters(sql, parameters =>
@@ -138,7 +138,7 @@ public sealed class SqliteDataService
             FROM donation_allocations a
             INNER JOIN donations d ON d.donation_id = a.donation_id
             INNER JOIN supporters s ON s.supporter_id = d.supporter_id
-            WHERE lower(s.email) = @email
+            WHERE LOWER(s.email) = @email
             ORDER BY a.allocation_date DESC;";
 
         return QueryWithParameters(sql, parameters =>
@@ -154,7 +154,7 @@ public sealed class SqliteDataService
             FROM in_kind_donation_items i
             INNER JOIN donations d ON d.donation_id = i.donation_id
             INNER JOIN supporters s ON s.supporter_id = d.supporter_id
-            WHERE lower(s.email) = @email
+            WHERE LOWER(s.email) = @email
             ORDER BY d.donation_date DESC, i.item_id DESC;";
 
         return QueryWithParameters(sql, parameters =>
@@ -166,7 +166,6 @@ public sealed class SqliteDataService
     public bool Update(string tableName, long id, Dictionary<string, object?> data)
     {
         if (!IsTableAllowed(tableName)) throw new ArgumentException("Unknown table.", nameof(tableName));
-        EnsureDb();
 
         var pk = GetPrimaryKey(tableName);
         data.Remove(pk);
@@ -174,7 +173,7 @@ public sealed class SqliteDataService
         var columns = data.Keys.ToList();
         var setClauses = columns.Select((c, i) => $"{c} = @p{i}").ToList();
 
-        using var conn = new SqliteConnection($"Data Source={_dbPath}");
+        using var conn = new SqlConnection(_connStr);
         conn.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = $"UPDATE {tableName} SET {string.Join(", ", setClauses)} WHERE {pk} = @id";
@@ -188,11 +187,10 @@ public sealed class SqliteDataService
     public bool Delete(string tableName, long id)
     {
         if (!IsTableAllowed(tableName)) throw new ArgumentException("Unknown table.", nameof(tableName));
-        EnsureDb();
 
         var pk = GetPrimaryKey(tableName);
 
-        using var conn = new SqliteConnection($"Data Source={_dbPath}");
+        using var conn = new SqlConnection(_connStr);
         conn.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = $"DELETE FROM {tableName} WHERE {pk} = @id";
@@ -203,10 +201,10 @@ public sealed class SqliteDataService
 
     private IReadOnlyList<Dictionary<string, object?>> QueryWithParameters(
         string sql,
-        Action<SqliteParameterCollection> bindParameters)
+        Action<SqlParameterCollection> bindParameters)
     {
         var results = new List<Dictionary<string, object?>>();
-        using var conn = new SqliteConnection($"Data Source={_dbPath}");
+        using var conn = new SqlConnection(_connStr);
         conn.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
@@ -216,24 +214,18 @@ public sealed class SqliteDataService
         {
             var row = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
             for (var i = 0; i < reader.FieldCount; i++)
-            {
                 row[reader.GetName(i)] = reader.IsDBNull(i) ? null : reader.GetValue(i);
-            }
-
             results.Add(row);
         }
-
         return results;
     }
 
-    /// <summary>Look up the logged-in user's display names from the users table.</summary>
     public (string? FirstName, string? LastName) GetUserNamesByEmail(string email)
     {
-        EnsureDb();
-        using var conn = new SqliteConnection($"Data Source={_dbPath}");
+        using var conn = new SqlConnection(_connStr);
         conn.Open();
         using var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT first_name, last_name FROM users WHERE lower(email) = lower(@email) LIMIT 1;";
+        cmd.CommandText = "SELECT TOP 1 first_name, last_name FROM users WHERE LOWER(email) = LOWER(@email);";
         cmd.Parameters.AddWithValue("@email", email.Trim());
         using var reader = cmd.ExecuteReader();
         if (!reader.Read())
@@ -244,10 +236,8 @@ public sealed class SqliteDataService
         return (fn, ln);
     }
 
-    /// <summary>Find or create a MonetaryDonor supporter row for demo / self-service donations.</summary>
     public long EnsureSupporterForDonorEmail(string email, string? firstName, string? lastName)
     {
-        EnsureDb();
         var normalized = email.Trim().ToLowerInvariant();
         var existing = QuerySupporterByEmail(normalized);
         if (existing.Count > 0)
@@ -272,11 +262,5 @@ public sealed class SqliteDataService
                 ["status"] = "Active",
                 ["acquisition_channel"] = "Website",
             });
-    }
-
-    private void EnsureDb()
-    {
-        if (!File.Exists(_dbPath))
-            throw new InvalidOperationException($"SQLite database not found at {_dbPath}.");
     }
 }

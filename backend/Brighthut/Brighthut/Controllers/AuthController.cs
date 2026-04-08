@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Data.Sqlite;
+using Microsoft.Data.SqlClient;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -18,7 +18,8 @@ public class AuthController : ControllerBase
     public AuthController(IConfiguration config)
     {
         _config = config;
-        _connStr = $"Data Source={Path.Combine(AppContext.BaseDirectory, "brighthut.sqlite")}";
+        _connStr = config.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is not configured.");
     }
 
     // POST /api/auth/register
@@ -35,7 +36,7 @@ public class AuthController : ControllerBase
 
         var hash = BCrypt.Net.BCrypt.HashPassword(req.Password);
 
-        using var conn = new SqliteConnection(_connStr);
+        using var conn = new SqlConnection(_connStr);
         conn.Open();
 
         // Check if email already exists
@@ -54,7 +55,7 @@ public class AuthController : ControllerBase
             VALUES
               (@email, @hash, @role, @firstName, @lastName, @orgName,
                @phone, @country, @region, @relType, @acqChannel, @suppType);
-            SELECT last_insert_rowid();";
+            SELECT SCOPE_IDENTITY();";
 
         cmd.Parameters.AddWithValue("@email", req.Email.ToLower());
         cmd.Parameters.AddWithValue("@hash", hash);
@@ -111,7 +112,7 @@ public class AuthController : ControllerBase
         if (string.IsNullOrWhiteSpace(req.Email) || string.IsNullOrWhiteSpace(req.Password))
             return BadRequest(new { error = "Email and password are required." });
 
-        using var conn = new SqliteConnection(_connStr);
+        using var conn = new SqlConnection(_connStr);
         conn.Open();
 
         using var cmd = conn.CreateCommand();
@@ -122,10 +123,10 @@ public class AuthController : ControllerBase
         if (!reader.Read())
             return Unauthorized(new { error = "Invalid email or password." });
 
-        var userId = reader.GetInt64(0);
+        var userId = Convert.ToInt64(reader.GetValue(0));
         var storedHash = reader.GetString(1);
         var role = reader.GetString(2);
-        var isActive = reader.GetInt64(3);
+        var isActive = Convert.ToInt64(reader.GetValue(3));
         var firstName = reader.IsDBNull(4) ? null : reader.GetString(4);
 
         if (isActive == 0)
@@ -159,7 +160,7 @@ public class AuthController : ControllerBase
     [Authorize(Roles = "staff,admin")]
     public IActionResult GetUsers()
     {
-        using var conn = new SqliteConnection(_connStr);
+        using var conn = new SqlConnection(_connStr);
         conn.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT user_id, email, role, first_name, last_name, organization_name, phone, country, region, supporter_type, created_at, is_active FROM users ORDER BY created_at DESC";
@@ -169,7 +170,7 @@ public class AuthController : ControllerBase
         {
             users.Add(new
             {
-                user_id         = reader.GetInt64(0),
+                user_id         = Convert.ToInt64(reader.GetValue(0)),
                 email           = reader.IsDBNull(1)  ? null : reader.GetString(1),
                 role            = reader.IsDBNull(2)  ? null : reader.GetString(2),
                 first_name      = reader.IsDBNull(3)  ? null : reader.GetString(3),
@@ -180,7 +181,7 @@ public class AuthController : ControllerBase
                 region          = reader.IsDBNull(8)  ? null : reader.GetString(8),
                 supporter_type  = reader.IsDBNull(9)  ? null : reader.GetString(9),
                 created_at      = reader.IsDBNull(10) ? null : reader.GetString(10),
-                is_active       = reader.GetInt64(11) == 1,
+                is_active       = Convert.ToInt64(reader.GetValue(11)) == 1,
             });
         }
         return Ok(users);

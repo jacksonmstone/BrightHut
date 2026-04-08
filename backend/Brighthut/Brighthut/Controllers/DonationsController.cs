@@ -1,7 +1,7 @@
 using Brighthut.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Data.Sqlite;
+using Microsoft.Data.SqlClient;
 using System.Security.Claims;
 
 namespace Brighthut.Controllers;
@@ -12,9 +12,10 @@ public class DonationsController : ControllerBase
 {
     private readonly string _connStr;
 
-    public DonationsController(SqliteDataService _)
+    public DonationsController(SqliteDataService _, IConfiguration config)
     {
-        _connStr = $"Data Source={Path.Combine(AppContext.BaseDirectory, "brighthut.sqlite")}";
+        _connStr = config.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is not configured.");
     }
 
     public record SubmitDonationRequest(decimal AmountUsd, string? Note);
@@ -39,19 +40,19 @@ public class DonationsController : ControllerBase
         var today = DateTime.UtcNow.ToString("yyyy-MM-dd");
         var normalizedEmail = email.Trim().ToLowerInvariant();
 
-        using var conn = new SqliteConnection(_connStr);
+        using var conn = new SqlConnection(_connStr);
         conn.Open();
 
         // Find or create a supporter record linked to this email
         long supporterId;
         using (var findCmd = conn.CreateCommand())
         {
-            findCmd.CommandText = "SELECT supporter_id FROM supporters WHERE LOWER(email) = @email LIMIT 1";
+            findCmd.CommandText = "SELECT TOP 1 supporter_id FROM supporters WHERE LOWER(email) = @email";
             findCmd.Parameters.AddWithValue("@email", normalizedEmail);
             var result = findCmd.ExecuteScalar();
             if (result is not null)
             {
-                supporterId = (long)result;
+                supporterId = Convert.ToInt64(result);
             }
             else
             {
@@ -62,11 +63,11 @@ public class DonationsController : ControllerBase
                 insertCmd.CommandText = @"
                     INSERT INTO supporters (display_name, email, supporter_type, relationship_type, status, first_donation_date)
                     VALUES (@display, @email, 'MonetaryDonor', 'Local', 'Active', @today);
-                    SELECT last_insert_rowid();";
+                    SELECT SCOPE_IDENTITY();";
                 insertCmd.Parameters.AddWithValue("@display", displayName);
                 insertCmd.Parameters.AddWithValue("@email", normalizedEmail);
                 insertCmd.Parameters.AddWithValue("@today", today);
-                supporterId = (long)(insertCmd.ExecuteScalar() ?? 0L);
+                supporterId = Convert.ToInt64(insertCmd.ExecuteScalar() ?? 0L);
             }
         }
 
@@ -81,12 +82,12 @@ public class DonationsController : ControllerBase
                 VALUES
                   (@sid, 'Monetary', @date, 'Direct',
                    @amount, 'PHP', 'pesos', 0, 'Online Donation', @notes);
-                SELECT last_insert_rowid();";
+                SELECT SCOPE_IDENTITY();";
             donCmd.Parameters.AddWithValue("@sid", supporterId);
             donCmd.Parameters.AddWithValue("@date", today);
             donCmd.Parameters.AddWithValue("@amount", (double)amountPhp);
             donCmd.Parameters.AddWithValue("@notes", (object?)req.Note ?? DBNull.Value);
-            donationId = (long)(donCmd.ExecuteScalar() ?? 0L);
+            donationId = Convert.ToInt64(donCmd.ExecuteScalar() ?? 0L);
         }
 
         return Ok(new { donationId, supporterId, amountPhp });
