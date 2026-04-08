@@ -63,18 +63,46 @@ export default function Impact() {
     [metrics, latestMonth]
   )
 
+  // For fields that may be NULL in the latest month, find the most recent month with real data
+  const latestMonthWithEducation = useMemo(() => {
+    const months = [...new Set(metrics.map(r => String(r.month_start ?? '').slice(0, 7)).filter(Boolean))].sort()
+    for (let i = months.length - 1; i >= 0; i--) {
+      const rows = metrics.filter(r => String(r.month_start ?? '').startsWith(months[i]))
+      if (rows.some(r => r.avg_education_progress != null && toNumber(r.avg_education_progress) > 0)) return rows
+    }
+    return []
+  }, [metrics])
+
+  const latestMonthWithHealth = useMemo(() => {
+    const months = [...new Set(metrics.map(r => String(r.month_start ?? '').slice(0, 7)).filter(Boolean))].sort()
+    for (let i = months.length - 1; i >= 0; i--) {
+      const rows = metrics.filter(r => String(r.month_start ?? '').startsWith(months[i]))
+      if (rows.some(r => r.avg_health_score != null && toNumber(r.avg_health_score) > 0)) return rows
+    }
+    return []
+  }, [metrics])
+
+  const latestMonthWithVisits = useMemo(() => {
+    const months = [...new Set(metrics.map(r => String(r.month_start ?? '').slice(0, 7)).filter(Boolean))].sort()
+    for (let i = months.length - 1; i >= 0; i--) {
+      const rows = metrics.filter(r => String(r.month_start ?? '').startsWith(months[i]))
+      if (rows.some(r => toNumber(r.home_visitation_count) > 0)) return rows
+    }
+    return []
+  }, [metrics])
+
   const totals = useMemo(() => {
     const activeResidents = latestMonthRows.reduce((sum, r) => sum + toNumber(r.active_residents), 0)
-    const avgEducation = latestMonthRows.length
-      ? latestMonthRows.reduce((sum, r) => sum + toNumber(r.avg_education_progress), 0) / latestMonthRows.length
+    const avgEducation = latestMonthWithEducation.length
+      ? latestMonthWithEducation.reduce((sum, r) => sum + toNumber(r.avg_education_progress), 0) / latestMonthWithEducation.length
       : 0
-    const avgHealth = latestMonthRows.length
-      ? latestMonthRows.reduce((sum, r) => sum + toNumber(r.avg_health_score), 0) / latestMonthRows.length
+    const avgHealth = latestMonthWithHealth.length
+      ? latestMonthWithHealth.reduce((sum, r) => sum + toNumber(r.avg_health_score), 0) / latestMonthWithHealth.length
       : 0
     const processNotes = latestMonthRows.reduce((sum, r) => sum + toNumber(r.process_recording_count), 0)
-    const visits = latestMonthRows.reduce((sum, r) => sum + toNumber(r.home_visitation_count), 0)
+    const visits = latestMonthWithVisits.reduce((sum, r) => sum + toNumber(r.home_visitation_count), 0)
     return { activeResidents, avgEducation, avgHealth, processNotes, visits }
-  }, [latestMonthRows])
+  }, [latestMonthRows, latestMonthWithEducation, latestMonthWithHealth, latestMonthWithVisits])
 
   const trend = useMemo(() => {
     const byMonth = new Map<string, number>()
