@@ -134,10 +134,8 @@ export default function MyContributions() {
     <main className="my-contributions">
       <div className="mc-header">
         <button className="mc-back" onClick={() => window.history.back()}>← Back to Portal</button>
-        <h1>Donor dashboard</h1>
-        <p className="mc-subhead">
-          Welcome back, <strong>{supporter ? String(supporter.first_name ?? firstName) : firstName}</strong>. Review your donation history and impact to BrightHut.
-        </p>
+        <h1>Welcome back, {supporter ? String(supporter.first_name ?? firstName) : firstName}!</h1>
+        <p className="mc-subhead">Review your donation history and impact to BrightHut.</p>
       </div>
 
       {/* Summary cards */}

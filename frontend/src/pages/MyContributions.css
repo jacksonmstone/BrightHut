@@ -12,23 +12,45 @@
 }
 
 .mc-header {
-  margin-bottom: 32px;
+  margin-bottom: 40px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid var(--border);
 }
 
 .mc-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: none;
-  border: none;
-  color: var(--primary);
-  font-size: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  padding: 0;
-  margin-bottom: 12px;
-  display: inline-block;
+  padding: 6px 14px;
+  margin-bottom: 24px;
+  transition: background 0.15s, color 0.15s;
 }
 
 .mc-back:hover {
-  text-decoration: underline;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.mc-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  margin: 0 0 10px;
+  letter-spacing: -0.02em;
+}
+
+.mc-subhead {
+  font-size: 1rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
 }
 
 .mc-donate-btn {
