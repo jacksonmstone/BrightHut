@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getSocialMediaPosts } from '../api/social'
+import PaginationBar from '../components/PaginationBar'
 import './SocialPortal.css'
 
 type Post = Record<string, unknown>
@@ -12,7 +13,8 @@ export default function SocialPortal() {
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [platformFilter, setPlatformFilter] = useState('All')
-  const [visible, setVisible] = useState(12)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(12)
   const [activePost, setActivePost] = useState<Post | null>(null)
   const closeBtnRef = useRef<HTMLButtonElement | null>(null)
 
@@ -34,6 +36,18 @@ export default function SocialPortal() {
     const matchPlatform = platformFilter === 'All' || p.platform === platformFilter
     return matchSearch && matchPlatform
   })
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize) || 1)
+  const currentPage = Math.min(page, totalPages)
+  const pagedPosts = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+
+  useEffect(() => {
+    setPage(1)
+  }, [search, platformFilter])
+
+  useEffect(() => {
+    setPage((p) => Math.min(p, totalPages))
+  }, [totalPages])
 
   const totalReach = posts.reduce((sum, p) => sum + Number(p.reach ?? 0), 0)
   const totalEngagement = posts.reduce((sum, p) => sum + Number(p.likes ?? 0) + Number(p.comments ?? 0) + Number(p.shares ?? 0), 0)
@@ -87,7 +101,7 @@ export default function SocialPortal() {
             <button
               key={p}
               className={`platform-btn ${platformFilter === p ? 'active' : ''}`}
-              onClick={() => { setPlatformFilter(p); setVisible(6) }}
+              onClick={() => { setPlatformFilter(p); setPage(1) }}
             >
               {p}
             </button>
@@ -98,7 +112,7 @@ export default function SocialPortal() {
           type="text"
           placeholder="Search by caption, type, topic..."
           value={search}
-          onChange={(e) => { setSearch(e.target.value); setVisible(6) }}
+          onChange={(e) => { setSearch(e.target.value); setPage(1) }}
         />
         <span className="count">{filtered.length} post{filtered.length !== 1 ? 's' : ''}</span>
       </div>
@@ -107,10 +121,11 @@ export default function SocialPortal() {
       {error && <p className="state-msg error">{error}</p>}
 
       {!loading && !error && (
-        <div className="posts-grid">
-          {filtered.slice(0, visible).map((p, i) => (
+        <>
+        <div className="posts-grid" aria-describedby="social-pagination-nav">
+          {pagedPosts.map((p, idx) => (
             <button
-              key={i}
+              key={String(p.post_id ?? `${(currentPage - 1) * pageSize + idx}`)}
               type="button"
               className="post-card"
               onClick={() => setActivePost(p)}
@@ -138,13 +153,20 @@ export default function SocialPortal() {
           ))}
           {filtered.length === 0 && <p className="state-msg">No posts match your search.</p>}
         </div>
-      )}
-      {!loading && !error && visible < filtered.length && (
-        <div className="load-more-wrap">
-          <button className="load-more-btn" onClick={() => setVisible((v) => v + 12)}>
-            See 12 more ({filtered.length - visible} remaining)
-          </button>
-        </div>
+        {filtered.length > 0 && (
+          <PaginationBar
+            page={currentPage}
+            pageSize={pageSize}
+            totalItems={filtered.length}
+            onPageChange={setPage}
+            onPageSizeChange={(n) => {
+              setPageSize(n)
+              setPage(1)
+            }}
+            labelId="social-pagination"
+          />
+        )}
+        </>
       )}
 
       {activePost && (

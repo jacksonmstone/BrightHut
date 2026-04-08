@@ -4,6 +4,7 @@ import { getDonations, getDonationAllocations, getInKindDonationItems } from '..
 import { getSupporters } from '../api/supporters'
 import { insertRow, updateRow } from '../api/tables'
 import FormModal from '../components/FormModal'
+import PaginationBar from '../components/PaginationBar'
 import type { FieldDef } from '../components/FormModal'
 import { phpToUsd, formatUsd } from '../components/donationProgress'
 import './DonorsPortal.css'
@@ -49,6 +50,21 @@ const DONATION_FIELDS: FieldDef[] = [
 
 type FormState = { mode: 'add-supporter' | 'add-donation' | 'edit-supporter' | 'edit-donation'; record?: Row }
 
+function donorRowKey(tab: Tab, r: Row): string {
+  switch (tab) {
+    case 'donations':
+      return `d-${String(r.donation_id ?? '')}`
+    case 'supporters':
+      return `s-${String(r.supporter_id ?? '')}`
+    case 'allocations':
+      return `a-${String(r.allocation_id ?? '')}`
+    case 'inkind':
+      return `i-${String(r.item_id ?? '')}`
+    default:
+      return JSON.stringify(r)
+  }
+}
+
 export default function DonorsPortal() {
   const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('donations')
@@ -58,7 +74,8 @@ export default function DonorsPortal() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
-  const [visible, setVisible] = useState(12)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(12)
   const [filterType, setFilterType] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [formState, setFormState] = useState<FormState | null>(null)
@@ -86,6 +103,18 @@ export default function DonorsPortal() {
     return matchSearch
   })
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize) || 1)
+  const currentPage = Math.min(page, totalPages)
+  const pagedRows = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+
+  useEffect(() => {
+    setPage(1)
+  }, [tab, search, filterType, filterStatus])
+
+  useEffect(() => {
+    setPage((p) => Math.min(p, totalPages))
+  }, [totalPages])
+
   const supporterMap = useMemo(() => {
     const m = new Map<number, string>()
     for (const s of data.supporters) {
@@ -111,12 +140,12 @@ export default function DonorsPortal() {
     setRefreshKey(k => k + 1)
   }
 
-  const renderCard = (r: Row, i: number) => {
+  const renderCard = (r: Row, rk: string) => {
     switch (tab) {
       case 'donations': {
         const donorName = supporterMap.get(Number(r.supporter_id)) || '—'
         return (
-          <div key={i} className="donor-card">
+          <div key={rk} className="donor-card">
             <div className="donor-card-header">
               <span className={`type-badge type-${String(r.donation_type ?? '').toLowerCase()}`}>{String(r.donation_type ?? '—')}</span>
               <span className="donor-date">{String(r.donation_date ?? '—')}</span>
@@ -134,7 +163,7 @@ export default function DonorsPortal() {
       }
       case 'supporters':
         return (
-          <div key={i} className="donor-card">
+          <div key={rk} className="donor-card">
             <div className="donor-card-header">
               <span className="supporter-name">{String(r.display_name ?? '—')}</span>
               <span className={`status-badge status-${String(r.status ?? '').toLowerCase()}`}>{String(r.status ?? '—')}</span>
@@ -151,7 +180,7 @@ export default function DonorsPortal() {
         )
       case 'allocations':
         return (
-          <div key={i} className="donor-card">
+          <div key={rk} className="donor-card">
             <div className="donor-card-header">
               <span className="supporter-name">{String(r.program_area ?? '—')}</span>
               <span className="donor-date">{String(r.allocation_date ?? '—')}</span>
@@ -166,7 +195,7 @@ export default function DonorsPortal() {
         )
       case 'inkind':
         return (
-          <div key={i} className="donor-card">
+          <div key={rk} className="donor-card">
             <div className="donor-card-header">
               <span className="supporter-name">{String(r.item_name ?? '—')}</span>
               <span className={`type-badge type-${String(r.received_condition ?? '').toLowerCase()}`}>{String(r.received_condition ?? '—')}</span>
@@ -221,7 +250,7 @@ export default function DonorsPortal() {
           <button
             key={t.id}
             className={`tab-btn ${tab === t.id ? 'active' : ''}`}
-            onClick={() => { setTab(t.id); setSearch(''); setVisible(12); setFilterType(''); setFilterStatus('') }}
+            onClick={() => { setTab(t.id); setSearch(''); setPage(1); setFilterType(''); setFilterStatus('') }}
           >
             {t.label}
             <span className="tab-count">{data[t.id].length}</span>
@@ -231,13 +260,13 @@ export default function DonorsPortal() {
 
       {tab === 'supporters' && (
         <div className="dp-filters">
-          <select className="pp-filter-select" value={filterType} onChange={e => { setFilterType(e.target.value); setVisible(12) }}>
+          <select className="pp-filter-select" value={filterType} onChange={e => { setFilterType(e.target.value); setPage(1) }}>
             <option value="">All Types</option>
             {['MonetaryDonor','InKindDonor','Volunteer','SkillsContributor','SocialMediaAdvocate','PartnerOrganization'].map(t => (
               <option key={t} value={t}>{t}</option>
             ))}
           </select>
-          <select className="pp-filter-select" value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setVisible(12) }}>
+          <select className="pp-filter-select" value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1) }}>
             <option value="">All Statuses</option>
             <option value="Active">Active</option>
             <option value="Inactive">Inactive</option>
@@ -251,7 +280,7 @@ export default function DonorsPortal() {
           type="text"
           placeholder="Search across all fields..."
           value={search}
-          onChange={(e) => { setSearch(e.target.value); setVisible(12) }}
+          onChange={(e) => { setSearch(e.target.value); setPage(1) }}
         />
         <span className="count">{filtered.length} record{filtered.length !== 1 ? 's' : ''}</span>
         {tab === 'supporters' && (
@@ -266,17 +295,25 @@ export default function DonorsPortal() {
       {error && <p className="state-msg error">{error}</p>}
 
       {!loading && !error && (
-        <div className="donors-grid">
-          {filtered.slice(0, visible).map((r, i) => renderCard(r, i))}
-          {filtered.length === 0 && <p className="state-msg">No records match your search.</p>}
-        </div>
-      )}
-      {!loading && !error && visible < filtered.length && (
-        <div className="load-more-wrap">
-          <button className="load-more-btn" onClick={() => setVisible((v) => v + 12)}>
-            See 12 more ({filtered.length - visible} remaining)
-          </button>
-        </div>
+        <>
+          <div className="donors-grid" aria-describedby="donors-pagination-nav">
+            {pagedRows.map((r) => renderCard(r, donorRowKey(tab, r)))}
+            {filtered.length === 0 && <p className="state-msg">No records match your search.</p>}
+          </div>
+          {filtered.length > 0 && (
+            <PaginationBar
+              page={currentPage}
+              pageSize={pageSize}
+              totalItems={filtered.length}
+              onPageChange={setPage}
+              onPageSizeChange={(n) => {
+                setPageSize(n)
+                setPage(1)
+              }}
+              labelId="donors-pagination"
+            />
+          )}
+        </>
       )}
     </main>
   )

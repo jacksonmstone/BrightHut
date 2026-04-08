@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import PaginationBar from '../components/PaginationBar'
 import {
   getResidents,
   getProcessRecordings,
@@ -31,6 +32,27 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'incidents', label: 'Incidents' },
 ]
 
+function participantRowKey(tab: Tab, r: Row): string {
+  switch (tab) {
+    case 'residents':
+      return `res-${String(r.resident_id ?? '')}`
+    case 'process':
+      return `pr-${String(r.recording_id ?? '')}`
+    case 'visitations':
+      return `hv-${String(r.visitation_id ?? '')}`
+    case 'education':
+      return `ed-${String(r.education_record_id ?? '')}`
+    case 'health':
+      return `hl-${String(r.health_record_id ?? '')}`
+    case 'interventions':
+      return `ip-${String(r.plan_id ?? '')}`
+    case 'incidents':
+      return `inc-${String(r.incident_id ?? '')}`
+    default:
+      return JSON.stringify(r)
+  }
+}
+
 export default function ParticipantsPortal() {
   const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('residents')
@@ -41,7 +63,8 @@ export default function ParticipantsPortal() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
-  const [visible, setVisible] = useState(12)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(12)
   const [filterStatus, setFilterStatus] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
   const [filterSafehouse, setFilterSafehouse] = useState('')
@@ -119,14 +142,26 @@ export default function ParticipantsPortal() {
     return matchSearch && matchStatus && matchCategory && matchSafehouse && matchReadiness
   })
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize) || 1)
+  const currentPage = Math.min(page, totalPages)
+  const pagedRows = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+
+  useEffect(() => {
+    setPage(1)
+  }, [tab, search, filterStatus, filterCategory, filterSafehouse, filterReadiness])
+
+  useEffect(() => {
+    setPage((p) => Math.min(p, totalPages))
+  }, [totalPages])
+
   const resetFilters = () => { setFilterStatus(''); setFilterCategory(''); setFilterSafehouse(''); setFilterReadiness('') }
 
-  const renderCard = (r: Row, i: number) => {
+  const renderCard = (r: Row, rk: string) => {
     switch (tab) {
       case 'residents': {
         return (
           <button
-            key={i}
+            key={rk}
             type="button"
             className="p-card p-card--clickable p-card--button"
             onClick={() => navigate(`/participants/${r.resident_id}`)}
@@ -151,7 +186,7 @@ export default function ParticipantsPortal() {
       }
       case 'process':
         return (
-          <div key={i} className="p-card">
+          <div key={rk} className="p-card">
             <div className="p-card-header">
               <span className="p-code">{String(r.session_date ?? '—')}</span>
               <span className="meta-tag">{String(r.session_type ?? '—')}</span>
@@ -168,7 +203,7 @@ export default function ParticipantsPortal() {
         )
       case 'visitations':
         return (
-          <div key={i} className="p-card">
+          <div key={rk} className="p-card">
             <div className="p-card-header">
               <span className="p-code">{String(r.visit_date ?? '—')}</span>
               <span className="meta-tag">{String(r.visit_type ?? '—')}</span>
@@ -184,7 +219,7 @@ export default function ParticipantsPortal() {
         )
       case 'education':
         return (
-          <div key={i} className="p-card">
+          <div key={rk} className="p-card">
             <div className="p-card-header">
               <span className="p-code">{String(r.record_date ?? '—')}</span>
               <span className="meta-tag">{String(r.program_name ?? r.education_level ?? '—')}</span>
@@ -200,7 +235,7 @@ export default function ParticipantsPortal() {
         )
       case 'health':
         return (
-          <div key={i} className="p-card">
+          <div key={rk} className="p-card">
             <div className="p-card-header">
               <span className="p-code">{String(r.record_date ?? '—')}</span>
               <span className="meta-tag">BMI: {String(r.bmi ?? '—')}</span>
@@ -217,7 +252,7 @@ export default function ParticipantsPortal() {
         )
       case 'interventions':
         return (
-          <div key={i} className="p-card">
+          <div key={rk} className="p-card">
             <div className="p-card-header">
               <span className="p-code">{String(r.plan_category ?? '—')}</span>
               <span className={`status-badge status-${String(r.status ?? '').toLowerCase().replace(' ', '-')}`}>{String(r.status ?? '—')}</span>
@@ -232,7 +267,7 @@ export default function ParticipantsPortal() {
         )
       case 'incidents':
         return (
-          <div key={i} className="p-card">
+          <div key={rk} className="p-card">
             <div className="p-card-header">
               <span className="p-code">{String(r.incident_date ?? '—')}</span>
               <span className={`severity-badge severity-${String(r.severity ?? '').toLowerCase()}`}>{String(r.severity ?? '—')}</span>
@@ -314,7 +349,7 @@ export default function ParticipantsPortal() {
           <button
             key={t.id}
             className={`tab-btn ${tab === t.id ? 'active' : ''}`}
-            onClick={() => { setTab(t.id); setSearch(''); setVisible(12); resetFilters() }}
+            onClick={() => { setTab(t.id); setSearch(''); setPage(1); resetFilters() }}
           >
             {t.label}
             <span className="tab-count">{data[t.id].length}</span>
@@ -324,20 +359,20 @@ export default function ParticipantsPortal() {
 
       {tab === 'residents' && (
         <div className="pp-filters">
-          <select className="pp-filter-select" value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setVisible(12) }}>
+          <select className="pp-filter-select" value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1) }}>
             <option value="">All Statuses</option>
             {['Active','Closed','Transferred'].map(s => <option key={s} value={s}>{s}</option>)}
           </select>
-          <select className="pp-filter-select" value={filterCategory} onChange={e => { setFilterCategory(e.target.value); setVisible(12) }}>
+          <select className="pp-filter-select" value={filterCategory} onChange={e => { setFilterCategory(e.target.value); setPage(1) }}>
             <option value="">All Categories</option>
             {['Abandoned','Foundling','Surrendered','Neglected'].map(c => <option key={c} value={c}>{c}</option>)}
           </select>
-          <select className="pp-filter-select" value={filterSafehouse} onChange={e => { setFilterSafehouse(e.target.value); setVisible(12) }}>
+          <select className="pp-filter-select" value={filterSafehouse} onChange={e => { setFilterSafehouse(e.target.value); setPage(1) }}>
             <option value="">All Safehouses</option>
             {safehouses.map(s => <option key={String(s.safehouse_id)} value={String(s.safehouse_id)}>{String(s.name)}</option>)}
           </select>
           {readinessScores.size > 0 && (
-            <select className="pp-filter-select" value={filterReadiness} onChange={e => { setFilterReadiness(e.target.value); setVisible(12) }}>
+            <select className="pp-filter-select" value={filterReadiness} onChange={e => { setFilterReadiness(e.target.value); setPage(1) }}>
               <option value="">All Readiness Tiers</option>
               <option value="High Readiness">High Readiness</option>
               <option value="Moderate Readiness">Moderate Readiness</option>
@@ -354,7 +389,7 @@ export default function ParticipantsPortal() {
           type="text"
           placeholder="Search across all fields..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); setPage(1) }}
         />
         <span className="count">{filtered.length} record{filtered.length !== 1 ? 's' : ''}</span>
       </div>
@@ -364,16 +399,22 @@ export default function ParticipantsPortal() {
 
       {!loading && !error && (
         <>
-          <div className="residents-grid">
-            {filtered.slice(0, visible).map((r, i) => renderCard(r, i))}
+          <div className="residents-grid" aria-describedby="participants-pagination-nav">
+            {pagedRows.map((r) => renderCard(r, participantRowKey(tab, r)))}
             {filtered.length === 0 && <p className="state-msg">No records match your search.</p>}
           </div>
-          {visible < filtered.length && (
-            <div className="load-more-wrap">
-              <button className="load-more-btn" onClick={() => setVisible(v => v + 12)}>
-                Show 12 more ({filtered.length - visible} remaining)
-              </button>
-            </div>
+          {filtered.length > 0 && (
+            <PaginationBar
+              page={currentPage}
+              pageSize={pageSize}
+              totalItems={filtered.length}
+              onPageChange={setPage}
+              onPageSizeChange={(n) => {
+                setPageSize(n)
+                setPage(1)
+              }}
+              labelId="participants-pagination"
+            />
           )}
         </>
       )}
