@@ -32,6 +32,7 @@ else
     authEnabled = true;
 }
 
+builder.Services.AddSingleton<DbConnectionFactory>();
 builder.Services.AddSingleton<SqliteDataService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

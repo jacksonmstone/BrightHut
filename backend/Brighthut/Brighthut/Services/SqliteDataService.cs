@@ -1,10 +1,10 @@
-using Microsoft.Data.SqlClient;
+using System.Data;
 
 namespace Brighthut.Services;
 
 public sealed class SqliteDataService
 {
-    private readonly string _connStr;
+    private readonly DbConnectionFactory _factory;
 
     private static readonly HashSet<string> AllowedTables =
     [
@@ -48,12 +48,9 @@ public sealed class SqliteDataService
         ["public_impact_snapshots"] = "snapshot_id",
     };
 
-    public SqliteDataService(IConfiguration config)
+    public SqliteDataService(DbConnectionFactory factory)
     {
-        _connStr = config.GetConnectionString("DefaultConnection")
-            ?? throw new InvalidOperationException(
-                "ConnectionStrings:DefaultConnection is not configured. " +
-                "Set CONNECTIONSTRINGS__DEFAULTCONNECTION in Azure App Service Configuration.");
+        _factory = factory;
     }
 
     public bool IsTableAllowed(string tableName) =>
@@ -68,7 +65,7 @@ public sealed class SqliteDataService
             throw new ArgumentException("Unknown table.", nameof(tableName));
 
         var results = new List<Dictionary<string, object?>>();
-        using var conn = new SqlConnection(_connStr);
+        using var conn = _factory.CreateConnection();
         conn.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = $"SELECT * FROM {tableName}";
@@ -93,27 +90,20 @@ public sealed class SqliteDataService
         var columns = data.Keys.ToList();
         var paramNames = columns.Select((_, i) => $"@p{i}").ToList();
 
-        using var conn = new SqlConnection(_connStr);
+        using var conn = _factory.CreateConnection();
         conn.Open();
         using var cmd = conn.CreateCommand();
-        cmd.CommandText = $"INSERT INTO {tableName} ({string.Join(", ", columns)}) VALUES ({string.Join(", ", paramNames)}); SELECT SCOPE_IDENTITY();";
+        cmd.CommandText = $"INSERT INTO {tableName} ({string.Join(", ", columns)}) VALUES ({string.Join(", ", paramNames)}); {_factory.LastInsertIdSql}";
         for (var i = 0; i < columns.Count; i++)
-            cmd.Parameters.AddWithValue($"@p{i}", data[columns[i]] ?? DBNull.Value);
+            DbConnectionFactory.Bind(cmd, $"@p{i}", data[columns[i]]);
 
         return Convert.ToInt64(cmd.ExecuteScalar() ?? 0L);
     }
 
     public IReadOnlyList<Dictionary<string, object?>> QuerySupporterByEmail(string email)
     {
-        const string sql = @"
-            SELECT TOP 1 *
-            FROM supporters
-            WHERE LOWER(email) = @email;";
-
-        return QueryWithParameters(sql, parameters =>
-        {
-            parameters.AddWithValue("@email", email.Trim().ToLowerInvariant());
-        });
+        var sql = _factory.OneRow("SELECT * FROM supporters WHERE LOWER(email) = @email");
+        return QueryWithParameters(sql, cmd => DbConnectionFactory.Bind(cmd, "@email", email.Trim().ToLowerInvariant()));
     }
 
     public IReadOnlyList<Dictionary<string, object?>> QueryDonationsBySupporterEmail(string email)
@@ -125,10 +115,7 @@ public sealed class SqliteDataService
             WHERE LOWER(s.email) = @email
             ORDER BY d.donation_date DESC;";
 
-        return QueryWithParameters(sql, parameters =>
-        {
-            parameters.AddWithValue("@email", email.Trim().ToLowerInvariant());
-        });
+        return QueryWithParameters(sql, cmd => DbConnectionFactory.Bind(cmd, "@email", email.Trim().ToLowerInvariant()));
     }
 
     public IReadOnlyList<Dictionary<string, object?>> QueryDonationAllocationsBySupporterEmail(string email)
@@ -141,10 +128,7 @@ public sealed class SqliteDataService
             WHERE LOWER(s.email) = @email
             ORDER BY a.allocation_date DESC;";
 
-        return QueryWithParameters(sql, parameters =>
-        {
-            parameters.AddWithValue("@email", email.Trim().ToLowerInvariant());
-        });
+        return QueryWithParameters(sql, cmd => DbConnectionFactory.Bind(cmd, "@email", email.Trim().ToLowerInvariant()));
     }
 
     public IReadOnlyList<Dictionary<string, object?>> QueryInKindItemsBySupporterEmail(string email)
@@ -157,10 +141,7 @@ public sealed class SqliteDataService
             WHERE LOWER(s.email) = @email
             ORDER BY d.donation_date DESC, i.item_id DESC;";
 
-        return QueryWithParameters(sql, parameters =>
-        {
-            parameters.AddWithValue("@email", email.Trim().ToLowerInvariant());
-        });
+        return QueryWithParameters(sql, cmd => DbConnectionFactory.Bind(cmd, "@email", email.Trim().ToLowerInvariant()));
     }
 
     public bool Update(string tableName, long id, Dictionary<string, object?> data)
@@ -173,13 +154,13 @@ public sealed class SqliteDataService
         var columns = data.Keys.ToList();
         var setClauses = columns.Select((c, i) => $"{c} = @p{i}").ToList();
 
-        using var conn = new SqlConnection(_connStr);
+        using var conn = _factory.CreateConnection();
         conn.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = $"UPDATE {tableName} SET {string.Join(", ", setClauses)} WHERE {pk} = @id";
         for (var i = 0; i < columns.Count; i++)
-            cmd.Parameters.AddWithValue($"@p{i}", data[columns[i]] ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@id", id);
+            DbConnectionFactory.Bind(cmd, $"@p{i}", data[columns[i]]);
+        DbConnectionFactory.Bind(cmd, "@id", id);
 
         return cmd.ExecuteNonQuery() > 0;
     }
@@ -190,25 +171,23 @@ public sealed class SqliteDataService
 
         var pk = GetPrimaryKey(tableName);
 
-        using var conn = new SqlConnection(_connStr);
+        using var conn = _factory.CreateConnection();
         conn.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = $"DELETE FROM {tableName} WHERE {pk} = @id";
-        cmd.Parameters.AddWithValue("@id", id);
+        DbConnectionFactory.Bind(cmd, "@id", id);
 
         return cmd.ExecuteNonQuery() > 0;
     }
 
-    private IReadOnlyList<Dictionary<string, object?>> QueryWithParameters(
-        string sql,
-        Action<SqlParameterCollection> bindParameters)
+    private IReadOnlyList<Dictionary<string, object?>> QueryWithParameters(string sql, Action<IDbCommand> bindParameters)
     {
         var results = new List<Dictionary<string, object?>>();
-        using var conn = new SqlConnection(_connStr);
+        using var conn = _factory.CreateConnection();
         conn.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
-        bindParameters(cmd.Parameters);
+        bindParameters(cmd);
         using var reader = cmd.ExecuteReader();
         while (reader.Read())
         {
@@ -222,18 +201,15 @@ public sealed class SqliteDataService
 
     public (string? FirstName, string? LastName) GetUserNamesByEmail(string email)
     {
-        using var conn = new SqlConnection(_connStr);
+        var sql = _factory.OneRow("SELECT first_name, last_name FROM users WHERE LOWER(email) = LOWER(@email)");
+        using var conn = _factory.CreateConnection();
         conn.Open();
         using var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT TOP 1 first_name, last_name FROM users WHERE LOWER(email) = LOWER(@email);";
-        cmd.Parameters.AddWithValue("@email", email.Trim());
+        cmd.CommandText = sql;
+        DbConnectionFactory.Bind(cmd, "@email", email.Trim());
         using var reader = cmd.ExecuteReader();
-        if (!reader.Read())
-            return (null, null);
-
-        string? fn = reader.IsDBNull(0) ? null : reader.GetString(0);
-        string? ln = reader.IsDBNull(1) ? null : reader.GetString(1);
-        return (fn, ln);
+        if (!reader.Read()) return (null, null);
+        return (reader.IsDBNull(0) ? null : reader.GetString(0), reader.IsDBNull(1) ? null : reader.GetString(1));
     }
 
     public long EnsureSupporterForDonorEmail(string email, string? firstName, string? lastName)
@@ -243,24 +219,20 @@ public sealed class SqliteDataService
         if (existing.Count > 0)
             return Convert.ToInt64(existing[0]["supporter_id"] ?? 0L);
 
-        var display = string.Join(
-            " ",
-            new[] { firstName, lastName }.Where(static s => !string.IsNullOrWhiteSpace(s)));
+        var display = string.Join(" ", new[] { firstName, lastName }.Where(static s => !string.IsNullOrWhiteSpace(s)));
         if (string.IsNullOrWhiteSpace(display))
             display = normalized.Split('@')[0];
 
-        return Insert(
-            "supporters",
-            new Dictionary<string, object?>
-            {
-                ["supporter_type"] = "MonetaryDonor",
-                ["display_name"] = display,
-                ["first_name"] = firstName,
-                ["last_name"] = lastName,
-                ["relationship_type"] = "Local",
-                ["email"] = normalized,
-                ["status"] = "Active",
-                ["acquisition_channel"] = "Website",
-            });
+        return Insert("supporters", new Dictionary<string, object?>
+        {
+            ["supporter_type"] = "MonetaryDonor",
+            ["display_name"] = display,
+            ["first_name"] = firstName,
+            ["last_name"] = lastName,
+            ["relationship_type"] = "Local",
+            ["email"] = normalized,
+            ["status"] = "Active",
+            ["acquisition_channel"] = "Website",
+        });
     }
 }
