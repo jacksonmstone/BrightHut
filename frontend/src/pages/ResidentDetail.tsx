@@ -8,7 +8,10 @@ import {
   getHealthRecords,
   getInterventionPlans,
   getIncidentReports,
+  getResidentReadinessScore,
+  getResidentRegressionRisk,
 } from '../api/residents'
+import type { ReadinessScore, RegressionRisk } from '../api/residents'
 import { getSafehouses } from '../api/safehouses'
 import { insertRow, updateRow } from '../api/tables'
 import FormModal from '../components/FormModal'
@@ -154,6 +157,126 @@ function Badge({ text, variant }: { text: string; variant?: string }) {
 
 type FormState = { fields: FieldDef[]; table: string; pk?: number; initial?: Row }
 
+// ── Clinical assessment display helpers ───────────────────────────────────────
+
+// Readiness: format a raw feature value into a human-readable string
+function formatReadinessValue(rawKey: string, value: number): string {
+  switch (rawKey) {
+    case 'session_count':
+      return `${value} session${value !== 1 ? 's' : ''} on record`
+    case 'progress_noted_rate':
+      return `${Math.round(value * 100)}% of sessions showed progress`
+    case 'avg_session_improvement':
+      return value >= 0
+        ? `+${value.toFixed(1)} avg emotional improvement per session`
+        : `${value.toFixed(1)} avg emotional change per session`
+    case 'favorable_visit_rate':
+      return `${Math.round(value * 100)}% of home visits were favorable`
+    case 'avg_education_progress':
+      return `${value.toFixed(0)}% average education progress`
+    case 'avg_health_score':
+      return `${value.toFixed(1)} / 10 general health score`
+    case 'incident_count':
+      return `${value} incident${value !== 1 ? 's' : ''} on record`
+    case 'has_reintegration_plan':
+      return value >= 1 ? 'Reintegration plan is active' : 'No reintegration plan on file'
+    case 'avg_cooperation_score':
+      return `${value.toFixed(1)} / 4 family cooperation score`
+    default:
+      return String(value)
+  }
+}
+
+// Readiness: reinforcement note for a positive strength
+function getReinforceNote(rawKey: string): string {
+  switch (rawKey) {
+    case 'session_count':
+      return 'Consistent attendance is building therapeutic trust — keep sessions scheduled regularly.'
+    case 'progress_noted_rate':
+      return 'A high session progress rate is one of the strongest readiness signals — continue reinforcing these gains.'
+    case 'avg_session_improvement':
+      return 'Emotional improvement across sessions indicates the current interventions are working — maintain this approach.'
+    case 'favorable_visit_rate':
+      return 'Favorable home visits are strongly associated with successful reintegration — maintain visit frequency and quality.'
+    case 'avg_education_progress':
+      return 'Strong education progress supports long-term independence — continue current academic engagement and support.'
+    case 'avg_health_score':
+      return 'Good health scores support overall wellbeing — continue current health routines and checkup schedule.'
+    case 'incident_count':
+      return 'Low incident count reflects behavioral stability — actively reinforce the positive behavior patterns driving this.'
+    case 'has_reintegration_plan':
+      return 'An active reintegration plan is directly associated with successful outcomes — continue executing and updating the plan.'
+    case 'avg_cooperation_score':
+      return 'Strong family cooperation is one of the most important reintegration factors — nurture and document this relationship.'
+    default:
+      return 'Continue the current approach in this area.'
+  }
+}
+
+// Regression risk: format a raw risk feature value
+function formatRiskValue(rawKey: string, value: number): string {
+  switch (rawKey) {
+    case 'total_incidents':
+      return `${value} total incident${value !== 1 ? 's' : ''} on record`
+    case 'recent_incidents':
+      return `${value} incident${value !== 1 ? 's' : ''} in the last 90 days`
+    case 'max_incident_severity':
+      return value >= 3 ? 'Highest severity: High' : value >= 2 ? 'Highest severity: Medium' : 'Highest severity: Low'
+    case 'recent_max_severity':
+      return value >= 3 ? 'Recent highest severity: High' : value >= 2 ? 'Recent highest: Medium' : value > 0 ? 'Recent highest: Low' : 'No recent incidents'
+    case 'has_safety_concern':
+      return value >= 1 ? 'Safety concern flagged during a home visit' : 'No safety concerns noted'
+    case 'emotion_volatility':
+      return `${value.toFixed(2)} emotional volatility score`
+    case 'avg_emotion_score':
+      return `${value.toFixed(1)} / 7 average emotional state`
+    case 'avg_family_coop':
+      return `${value.toFixed(1)} / 4 average family cooperation`
+    case 'is_enrolled':
+      return value >= 1 ? 'Currently enrolled in education' : 'Not currently enrolled in school'
+    case 'session_count':
+      return `${value} total counseling session${value !== 1 ? 's' : ''}`
+    case 'recent_session_count':
+      return `${value} session${value !== 1 ? 's' : ''} in the last 90 days`
+    case 'avg_health_score':
+      return `${value.toFixed(1)} / 10 average health score`
+    default:
+      return String(value)
+  }
+}
+
+// Regression risk: actionable guidance for a risk factor
+function getRiskActionNote(rawKey: string): string {
+  switch (rawKey) {
+    case 'total_incidents':
+      return 'Review incident patterns and address root causes through targeted behavioral interventions.'
+    case 'recent_incidents':
+      return 'Recent incidents require immediate follow-up — increase monitoring and consider crisis support sessions.'
+    case 'max_incident_severity':
+      return 'Ensure all high-severity incidents have documented response plans and confirmed resolution follow-up.'
+    case 'recent_max_severity':
+      return 'A high-severity recent incident warrants urgent case conference review before next steps.'
+    case 'has_safety_concern':
+      return 'Home visit safety concerns must be fully addressed and documented before reintegration can safely proceed.'
+    case 'emotion_volatility':
+      return 'Emotional instability may benefit from more consistent session scheduling and structured therapeutic routines.'
+    case 'avg_emotion_score':
+      return 'Low average emotional state suggests current interventions may need adjustment — review session approach with supervisor.'
+    case 'avg_family_coop':
+      return 'Low family cooperation is a major regression risk — prioritize family engagement through structured visits and counseling.'
+    case 'is_enrolled':
+      return 'Re-enrolling this resident in school provides structure, routine, and a key protective environment.'
+    case 'session_count':
+      return 'Increasing counseling session frequency builds therapeutic history and strengthens protective factors.'
+    case 'recent_session_count':
+      return 'Scheduling more sessions in the near term improves engagement during this at-risk period.'
+    case 'avg_health_score':
+      return 'Health concerns can compound regression risk — schedule checkups and address any outstanding medical needs.'
+    default:
+      return 'Discuss this risk factor with the assigned social worker at the next case conference.'
+  }
+}
+
 export default function ResidentDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -171,9 +294,13 @@ export default function ResidentDetail() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [formState, setFormState] = useState<FormState | null>(null)
+  const [readinessScore, setReadinessScore] = useState<ReadinessScore | null>(null)
+  const [regressionRisk, setRegressionRisk] = useState<RegressionRisk | null>(null)
 
   useEffect(() => {
     setLoading(true)
+    setReadinessScore(null)
+    setRegressionRisk(null)
     Promise.all([
       getResidents(),
       getSafehouses(),
@@ -196,6 +323,11 @@ export default function ResidentDetail() {
         setHealth(hlt.filter(r => r.resident_id === rid).sort((a, b) => String(b.record_date).localeCompare(String(a.record_date))))
         setPlans(ipl.filter(r => r.resident_id === rid).sort((a, b) => String(b.created_at).localeCompare(String(a.created_at))))
         setIncidents(inc.filter(r => r.resident_id === rid).sort((a, b) => String(b.incident_date).localeCompare(String(a.incident_date))))
+
+        // Load ML scores independently — silently ignored if not staff/admin
+        const rid_ = Number(rid)
+        getResidentReadinessScore(rid_).then(setReadinessScore).catch(() => {})
+        getResidentRegressionRisk(rid_).then(setRegressionRisk).catch(() => {})
       })
       .catch(() => setError('Failed to load resident data.'))
       .finally(() => setLoading(false))
@@ -345,6 +477,113 @@ export default function ResidentDetail() {
                 <Field label="Initial Assessment" value={resident.initial_case_assessment} />
               </div>
             </section>
+
+            {(readinessScore || regressionRisk) && (() => {
+              const readTier    = readinessScore?.readinessTier
+              const readTierKey = readTier === 'High Readiness' ? 'high' : readTier === 'Moderate Readiness' ? 'moderate' : 'low'
+              const readPct     = readinessScore ? Math.round(readinessScore.readinessScore * 100) : null
+
+              const riskTier    = regressionRisk?.riskTier
+              const riskTierKey = riskTier === 'High Risk' ? 'high' : riskTier === 'Moderate Risk' ? 'moderate' : 'stable'
+              const riskPct     = regressionRisk ? Math.round(regressionRisk.riskScore * 100) : null
+
+              const strengths  = readinessScore?.topDrivers.filter(d => d.direction === 'positive') ?? []
+              const focusAreas = regressionRisk?.topRiskDrivers ?? []
+
+              return (
+                <section className="rd-section rd-section--highlight">
+                  <h2>Clinical Assessment</h2>
+                  <p className="rd-readiness-explainer">
+                    Two ML models assess this resident's current standing: reintegration readiness
+                    (how prepared they are for successful reintegration) and regression risk (whether
+                    behavioral or emotional decline is likely). Strengths come from the readiness model;
+                    focus areas come from the regression risk model — so every suggested action is tied
+                    to an active, changeable risk factor.
+                  </p>
+
+                  {readinessScore && readPct !== null && (
+                    <div className="rd-score-block">
+                      <div className="rd-score-block-header">
+                        <span className="rd-score-block-label">Reintegration Readiness</span>
+                        <span className={`rd-readiness-tier-badge rd-readiness-tier-badge--${readTierKey}`}>{readTier}</span>
+                      </div>
+                      <div className="rd-readiness-score-row">
+                        <span className="rd-readiness-pct">{readPct}%</span>
+                        <div className="rd-score-bar-track">
+                          <div className={`rd-score-bar-fill rd-score-bar-fill--${readTierKey}`} style={{ width: `${readPct}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {strengths.length > 0 && (
+                    <div className="rd-driver-group">
+                      <p className="rd-driver-group-label rd-driver-group-label--positive">Strengths supporting readiness</p>
+                      {strengths.map(d => (
+                        <div key={d.rawKey} className="rd-driver-row rd-driver-row--strength">
+                          <span className="rd-driver-icon rd-driver-icon--positive">✓</span>
+                          <div className="rd-driver-text">
+                            <span className="rd-driver-feature">{d.feature}</span>
+                            <span className="rd-driver-value">{formatReadinessValue(d.rawKey, d.value)}</span>
+                            <span className="rd-driver-reinforce">{getReinforceNote(d.rawKey)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {regressionRisk && riskPct !== null && (
+                    <div className="rd-score-block">
+                      <div className="rd-score-block-header">
+                        <span className="rd-score-block-label">Regression Risk</span>
+                        <span className={`rd-readiness-tier-badge rd-risk-tier-badge--${riskTierKey}`}>{riskTier}</span>
+                      </div>
+                      <div className="rd-readiness-score-row">
+                        <span className="rd-readiness-pct">{riskPct}%</span>
+                        <div className="rd-score-bar-track">
+                          <div className={`rd-score-bar-fill rd-risk-bar-fill--${riskTierKey}`} style={{ width: `${riskPct}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {focusAreas.length > 0 && (
+                    <div className="rd-driver-group">
+                      <p className="rd-driver-group-label rd-driver-group-label--negative">Active risk factors to address</p>
+                      {focusAreas.map(d => (
+                        <div key={d.rawKey} className="rd-driver-row rd-driver-row--focus">
+                          <span className="rd-driver-icon rd-driver-icon--negative">!</span>
+                          <div className="rd-driver-text">
+                            <span className="rd-driver-feature">{d.feature}</span>
+                            <span className="rd-driver-value">{formatRiskValue(d.rawKey, d.value)}</span>
+                            <span className="rd-driver-action">{getRiskActionNote(d.rawKey)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {focusAreas.length === 0 && riskTierKey !== 'stable' && (
+                    <div className="rd-no-negatives-note">
+                      No single factor is the dominant risk driver — the elevated score reflects a combination
+                      of factors still building. Lean into the strengths above and increase engagement
+                      across counseling sessions, home visits, and education to reduce risk over time.
+                    </div>
+                  )}
+
+                  {focusAreas.length === 0 && riskTierKey === 'stable' && strengths.length === 0 && (
+                    <div className="rd-no-negatives-note">
+                      Both models indicate a stable outlook. Continue current support routines and monitor
+                      for any changes in incident frequency, emotional state, or family cooperation.
+                    </div>
+                  )}
+
+                  <p className="rd-readiness-disclaimer">
+                    {readinessScore?.disclaimer ?? regressionRisk?.disclaimer}
+                  </p>
+                </section>
+              )
+            })()}
           </div>
         )}
 

@@ -6,24 +6,13 @@ const DEFAULT_CLOUD_BASE_URL =
 
 function getCandidateBaseUrls(): string[] {
   const configured = CONFIGURED_BASE_URL?.trim()
-  const isLocalPage =
-    typeof window !== 'undefined' &&
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-
   const candidates = new Set<string>()
 
-  // In local/dev, prefer same-origin requests so Vite proxy can forward `/api`.
-  if (isLocalPage) {
-    candidates.add('')
-  }
-
+  // Explicit override first — set VITE_API_BASE_URL=http://localhost:5287 in
+  // .env.local if you want to develop against a locally running backend.
   if (configured) candidates.add(configured)
 
-  if (isLocalPage) {
-    candidates.add('http://localhost:5287')
-    candidates.add('https://localhost:7287')
-  }
-
+  // Default: always use the cloud API (no noisy proxy errors when backend isn't running)
   candidates.add(DEFAULT_CLOUD_BASE_URL)
   return Array.from(candidates)
 }
@@ -59,6 +48,11 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
         ...options,
         headers,
       })
+      // Treat gateway/proxy errors as retryable (e.g. local backend not running)
+      if (res.status === 502 || res.status === 503 || res.status === 504) {
+        lastNetworkError = new Error(`${res.status} ${res.statusText}`)
+        continue
+      }
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
         throw new Error(parseApiError(body, res.status, path))

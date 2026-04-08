@@ -310,3 +310,59 @@
     grid-area: bartrack;
   }
 }
+
+/* ── Readiness tier breakdown panel ──────────────────────────────────────── */
+.ad-readiness-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+
+.ad-readiness-tiers {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ad-readiness-row {
+  display: grid;
+  grid-template-columns: 10px 140px 1fr 28px;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.88rem;
+}
+
+.ad-readiness-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.ad-readiness-dot--high     { background: #10b981; }
+.ad-readiness-dot--moderate { background: #f59e0b; }
+.ad-readiness-dot--low      { background: #ef4444; }
+
+.ad-readiness-label { color: var(--text); }
+
+.ad-readiness-bar-track {
+  height: 8px;
+  background: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.ad-readiness-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.5s ease;
+}
+.ad-readiness-bar-fill--high     { background: #10b981; }
+.ad-readiness-bar-fill--moderate { background: #f59e0b; }
+.ad-readiness-bar-fill--low      { background: #ef4444; }
+
+.ad-readiness-count {
+  text-align: right;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
