@@ -167,26 +167,28 @@ export default function AdminDashboard() {
             <h2>Recent Donations</h2>
             <button className="ad-link" onClick={() => navigate('/donors')}>View all →</button>
           </div>
-          <table className="ad-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Type</th>
-                <th>Amount</th>
-                <th>Channel</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentDonations.map((d, i) => (
-                <tr key={i}>
-                  <td>{String(d.donation_date ?? '—').slice(0, 10)}</td>
-                  <td><span className={`ad-badge ad-badge--${String(d.donation_type ?? '').toLowerCase()}`}>{String(d.donation_type ?? '—')}</span></td>
-                  <td>{d.amount ? formatUsd(phpToUsd(toNum(d.amount))) : '—'}</td>
-                  <td>{String(d.channel_source ?? '—')}</td>
+          <div className="ad-table-scroll" tabIndex={0}>
+            <table className="ad-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Type</th>
+                  <th>Amount</th>
+                  <th>Channel</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {recentDonations.map((d, i) => (
+                  <tr key={i}>
+                    <td>{String(d.donation_date ?? '—').slice(0, 10)}</td>
+                    <td><span className={`ad-badge ad-badge--${String(d.donation_type ?? '').toLowerCase()}`}>{String(d.donation_type ?? '—')}</span></td>
+                    <td>{d.amount ? formatUsd(phpToUsd(toNum(d.amount))) : '—'}</td>
+                    <td>{String(d.channel_source ?? '—')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
 
         {/* Upcoming Case Conferences */}
@@ -198,24 +200,26 @@ export default function AdminDashboard() {
           {upcomingConferences.length === 0 ? (
             <p className="ad-empty">No upcoming case conferences scheduled.</p>
           ) : (
-            <table className="ad-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Category</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {upcomingConferences.map((p, i) => (
-                  <tr key={i}>
-                    <td>{String(p.case_conference_date ?? '—').slice(0, 10)}</td>
-                    <td>{String(p.plan_category ?? '—')}</td>
-                    <td><span className={`ad-badge ad-badge--${String(p.status ?? '').toLowerCase().replace(' ', '-')}`}>{String(p.status ?? '—')}</span></td>
+            <div className="ad-table-scroll" tabIndex={0}>
+              <table className="ad-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Category</th>
+                    <th>Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {upcomingConferences.map((p, i) => (
+                    <tr key={i}>
+                      <td>{String(p.case_conference_date ?? '—').slice(0, 10)}</td>
+                      <td>{String(p.plan_category ?? '—')}</td>
+                      <td><span className={`ad-badge ad-badge--${String(p.status ?? '').toLowerCase().replace(' ', '-')}`}>{String(p.status ?? '—')}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </section>
 
@@ -279,28 +283,30 @@ export default function AdminDashboard() {
               <h2>Open Incidents</h2>
               <button className="ad-link" onClick={() => navigate('/participants')}>View all →</button>
             </div>
-            <table className="ad-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Type</th>
-                  <th>Severity</th>
-                  <th>Reported By</th>
-                  <th>Follow-up</th>
-                </tr>
-              </thead>
-              <tbody>
-                {openIncidents.slice(0, 8).map((inc, i) => (
-                  <tr key={i}>
-                    <td>{String(inc.incident_date ?? '—').slice(0, 10)}</td>
-                    <td>{String(inc.incident_type ?? '—')}</td>
-                    <td><span className={`ad-badge ad-badge--sev-${String(inc.severity ?? '').toLowerCase()}`}>{String(inc.severity ?? '—')}</span></td>
-                    <td>{String(inc.reported_by ?? '—')}</td>
-                    <td>{inc.follow_up_required ? 'Required' : 'None'}</td>
+            <div className="ad-table-scroll" tabIndex={0}>
+              <table className="ad-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Severity</th>
+                    <th>Reported By</th>
+                    <th>Follow-up</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {openIncidents.slice(0, 8).map((inc, i) => (
+                    <tr key={i}>
+                      <td>{String(inc.incident_date ?? '—').slice(0, 10)}</td>
+                      <td>{String(inc.incident_type ?? '—')}</td>
+                      <td><span className={`ad-badge ad-badge--sev-${String(inc.severity ?? '').toLowerCase()}`}>{String(inc.severity ?? '—')}</span></td>
+                      <td>{String(inc.reported_by ?? '—')}</td>
+                      <td>{inc.follow_up_required ? 'Required' : 'None'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </section>
         )}
       </div>

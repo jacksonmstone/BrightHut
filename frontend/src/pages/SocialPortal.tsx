@@ -61,6 +61,19 @@ export default function SocialPortal() {
         </div>
       </div>
 
+      <section className="social-purpose" aria-labelledby="social-purpose-heading">
+        <h2 id="social-purpose-heading" className="social-purpose-title">
+          Why we show up online
+        </h2>
+        <p className="social-purpose-body">
+          Social channels are how we <strong>educate the public</strong> about child protection,{' '}
+          <strong>recruit donors and volunteers</strong> who want to fund real programs (not noise), and{' '}
+          <strong>amplify survivor-informed messaging</strong> — always with dignity and without sharing private
+          details. The numbers below help our small team see which topics and platforms resonate so we can spend
+          limited time where it actually supports the mission.
+        </p>
+      </section>
+
       <div className="social-stats">
         <div className="stat-card"><span className="stat-value">{posts.length}</span><span className="stat-label">Total Posts</span></div>
         <div className="stat-card"><span className="stat-value">{totalReach.toLocaleString()}</span><span className="stat-label">Total Reach</span></div>

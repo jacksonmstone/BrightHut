@@ -72,12 +72,75 @@
   text-shadow: 0 14px 30px rgba(0, 0, 0, 0.25);
 }
 
+.hero-lead {
+  font-size: 17px;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.7;
+  margin-bottom: 14px;
+  max-width: 520px;
+}
+
+.hero-tagline {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.55;
+  margin-bottom: 18px;
+  max-width: 480px;
+  font-style: italic;
+}
+
+.hero-trust {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.6;
+  margin-bottom: 28px;
+  max-width: 520px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.hero-trust-link {
+  color: var(--primary-dark);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.hero-trust-link:hover {
+  color: var(--primary);
+}
+
 .hero-subtitle {
   font-size: 17px;
   color: rgba(255, 255, 255, 0.85);
   line-height: 1.7;
   margin-bottom: 36px;
-  max-width: 460px;
+  max-width: 480px;
+}
+
+.hero-subtitle .hero-trust-link {
+  color: var(--primary-dark);
+}
+
+.hero-account-hint {
+  margin-top: 18px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  max-width: 520px;
+  line-height: 1.5;
+}
+
+.hero-account-link {
+  color: #fff;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.hero-account-link:hover {
+  color: var(--primary);
 }
 
 .hero-actions {
@@ -119,6 +182,16 @@
   color: #fff;
 }
 
+.btn-secondary--ghost {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.btn-secondary--ghost:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
 .hero-visual {
   flex: 0 0 52%;
   position: relative;
@@ -139,6 +212,106 @@
   object-fit: cover;
   object-position: center;
   display: block;
+}
+
+/* ── Public impact preview (guests) ───────── */
+.home-impact-preview {
+  padding: 48px 80px 56px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.home-impact-preview-inner {
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+.home-impact-preview-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.home-impact-preview-header h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  margin-bottom: 10px;
+  font-family: ui-serif, Georgia, 'Times New Roman', Times, serif;
+}
+
+.home-impact-preview-header p {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  line-height: 1.65;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.home-impact-preview-header a {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.home-impact-preview-loading {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 1rem 0 0.5rem;
+}
+
+.home-impact-preview-stats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.home-impact-preview-stats li {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 16px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.home-impact-preview-value {
+  display: block;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--primary-dark);
+  margin-bottom: 6px;
+  line-height: 1.2;
+}
+
+.home-impact-preview-label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.home-impact-preview-cta {
+  text-align: center;
+  margin-top: 24px;
+}
+
+.home-impact-preview-link {
+  display: inline-block;
+  font-weight: 600;
+  color: var(--primary);
+  font-size: 0.95rem;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.home-impact-preview-link:hover {
+  color: var(--primary-dark);
 }
 
 /* ── Portals ──────────────────────────────── */
@@ -288,6 +461,14 @@
 
 /* ── Responsive ───────────────────────────── */
 @media (max-width: 900px) {
+  .home-impact-preview {
+    padding: 40px 40px 48px;
+  }
+
+  .home-impact-preview-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .hero {
     flex-direction: column;
     min-height: auto;
@@ -323,6 +504,16 @@
     width: calc(100% - 48px);
     height: 240px;
     margin: 0 24px 40px;
+  .home-impact-preview {
+    padding: 32px 24px 40px;
+  }
+
+  .home-impact-preview-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    padding: 48px 24px;
   }
   .hero-title {
     font-size: 28px;
