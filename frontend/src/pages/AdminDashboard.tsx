@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getResidents, getInterventionPlans, getIncidentReports } from '../api/residents'
+import { getResidents, getInterventionPlans, getIncidentReports, getResidentReadinessScore } from '../api/residents'
 import { getDonations } from '../api/donations'
 import { getSafehouses } from '../api/safehouses'
 import { getSupporters } from '../api/supporters'
@@ -25,6 +25,7 @@ export default function AdminDashboard() {
   const [incidents, setIncidents] = useState<Row[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [readinessTiers, setReadinessTiers] = useState<{ high: number; moderate: number; needsSupport: number } | null>(null)
 
   useEffect(() => {
     Promise.all([
@@ -42,6 +43,26 @@ export default function AdminDashboard() {
         setSupporters(sup)
         setPlans(p)
         setIncidents(inc)
+
+        // Load readiness scores for all active residents — silently ignored if not staff/admin
+        const activeIds = r
+          .filter((res: Row) => res.case_status === 'Active')
+          .map((res: Row) => Number(res.resident_id))
+        Promise.allSettled(activeIds.map((id: number) => getResidentReadinessScore(id)))
+          .then(results => {
+            const counts = { high: 0, moderate: 0, needsSupport: 0 }
+            results.forEach(res => {
+              if (res.status === 'fulfilled') {
+                const tier = res.value.readinessTier
+                if (tier === 'High Readiness') counts.high++
+                else if (tier === 'Moderate Readiness') counts.moderate++
+                else counts.needsSupport++
+              }
+            })
+            if (counts.high + counts.moderate + counts.needsSupport > 0) {
+              setReadinessTiers(counts)
+            }
+          })
       })
       .catch(() => setError('Failed to load dashboard data.'))
       .finally(() => setLoading(false))
@@ -216,6 +237,40 @@ export default function AdminDashboard() {
             ))}
           </div>
         </section>
+
+        {/* Reintegration Readiness Breakdown */}
+        {readinessTiers && (() => {
+          const total = readinessTiers.high + readinessTiers.moderate + readinessTiers.needsSupport
+          const tiers = [
+            { label: 'High Readiness',     count: readinessTiers.high,        key: 'high' },
+            { label: 'Moderate Readiness', count: readinessTiers.moderate,    key: 'moderate' },
+            { label: 'Needs Support',      count: readinessTiers.needsSupport, key: 'low' },
+          ]
+          return (
+            <section className="ad-card">
+              <div className="ad-card-header">
+                <h2>Reintegration Readiness</h2>
+                <button className="ad-link" onClick={() => navigate('/participants')}>View caseload →</button>
+              </div>
+              <p className="ad-readiness-subtitle">Active residents scored by the ML pipeline · {total} residents</p>
+              <div className="ad-readiness-tiers">
+                {tiers.map(t => (
+                  <div key={t.key} className="ad-readiness-row">
+                    <span className={`ad-readiness-dot ad-readiness-dot--${t.key}`} />
+                    <span className="ad-readiness-label">{t.label}</span>
+                    <div className="ad-readiness-bar-track">
+                      <div
+                        className={`ad-readiness-bar-fill ad-readiness-bar-fill--${t.key}`}
+                        style={{ width: total > 0 ? `${(t.count / total) * 100}%` : '0%' }}
+                      />
+                    </div>
+                    <span className="ad-readiness-count">{t.count}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )
+        })()}
 
         {/* Open Incidents */}
         {openIncidents.length > 0 && (

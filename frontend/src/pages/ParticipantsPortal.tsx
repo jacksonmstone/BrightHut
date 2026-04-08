@@ -8,7 +8,9 @@ import {
   getHealthRecords,
   getInterventionPlans,
   getIncidentReports,
+  getResidentReadinessScore,
 } from '../api/residents'
+import type { ReadinessScore } from '../api/residents'
 import { getSafehouses } from '../api/safehouses'
 import { insertRow } from '../api/tables'
 import FormModal from '../components/FormModal'
@@ -43,11 +45,13 @@ export default function ParticipantsPortal() {
   const [filterStatus, setFilterStatus] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
   const [filterSafehouse, setFilterSafehouse] = useState('')
+  const [filterReadiness, setFilterReadiness] = useState('')
   const [showAddResident, setShowAddResident] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const [deleteSupporterId, setDeleteSupporterId] = useState('')
   const [deleteMessage, setDeleteMessage] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [readinessScores, setReadinessScores] = useState<Map<number, ReadinessScore>>(new Map())
 
   useEffect(() => {
     Promise.all([
@@ -63,6 +67,20 @@ export default function ParticipantsPortal() {
       .then(([residents, process, visitations, education, health, interventions, incidents, sh]) => {
         setData({ residents, process, visitations, education, health, interventions, incidents })
         setSafehouses(sh)
+
+        // Load readiness scores for active residents in parallel.
+        // Silently ignored if the user lacks staff/admin role.
+        const activeIds = residents
+          .filter(r => r.case_status === 'Active')
+          .map(r => Number(r.resident_id))
+        Promise.allSettled(activeIds.map(id => getResidentReadinessScore(id)))
+          .then(results => {
+            const map = new Map<number, ReadinessScore>()
+            results.forEach((r, i) => {
+              if (r.status === 'fulfilled') map.set(activeIds[i], r.value)
+            })
+            setReadinessScores(map)
+          })
       })
       .catch(() => setError('Failed to load participant data.'))
       .finally(() => setLoading(false))
@@ -97,19 +115,22 @@ export default function ParticipantsPortal() {
     const matchStatus = !filterStatus || r.case_status === filterStatus
     const matchCategory = !filterCategory || r.case_category === filterCategory
     const matchSafehouse = !filterSafehouse || String(r.safehouse_id) === filterSafehouse
-    return matchSearch && matchStatus && matchCategory && matchSafehouse
+    const matchReadiness = !filterReadiness || readinessScores.get(Number(r.resident_id))?.readinessTier === filterReadiness
+    return matchSearch && matchStatus && matchCategory && matchSafehouse && matchReadiness
   })
 
-  const resetFilters = () => { setFilterStatus(''); setFilterCategory(''); setFilterSafehouse('') }
+  const resetFilters = () => { setFilterStatus(''); setFilterCategory(''); setFilterSafehouse(''); setFilterReadiness('') }
 
   const renderCard = (r: Row, i: number) => {
     switch (tab) {
-      case 'residents':
+      case 'residents': {
         return (
           <div key={i} className="p-card p-card--clickable" onClick={() => navigate(`/participants/${r.resident_id}`)}>
             <div className="p-card-header">
               <span className="p-code">{String(r.internal_code ?? '—')}</span>
-              <span className={`status-badge status-${String(r.case_status ?? '').toLowerCase()}`}>{String(r.case_status ?? '—')}</span>
+              <div className="p-card-badges">
+                <span className={`status-badge status-${String(r.case_status ?? '').toLowerCase()}`}>{String(r.case_status ?? '—')}</span>
+              </div>
             </div>
             <div className="p-card-body">
               <div className="p-field"><span className="field-label">Category</span><span>{String(r.case_category ?? '—')}</span></div>
@@ -121,6 +142,7 @@ export default function ParticipantsPortal() {
             <div className="p-card-footer">View full record →</div>
           </div>
         )
+      }
       case 'process':
         return (
           <div key={i} className="p-card">
@@ -308,6 +330,14 @@ export default function ParticipantsPortal() {
             <option value="">All Safehouses</option>
             {safehouses.map(s => <option key={String(s.safehouse_id)} value={String(s.safehouse_id)}>{String(s.name)}</option>)}
           </select>
+          {readinessScores.size > 0 && (
+            <select className="pp-filter-select" value={filterReadiness} onChange={e => { setFilterReadiness(e.target.value); setVisible(12) }}>
+              <option value="">All Readiness Tiers</option>
+              <option value="High Readiness">High Readiness</option>
+              <option value="Moderate Readiness">Moderate Readiness</option>
+              <option value="Needs Support">Needs Support</option>
+            </select>
+          )}
           <button className="pp-add-btn" onClick={() => setShowAddResident(true)}>+ Add Resident</button>
         </div>
       )}
