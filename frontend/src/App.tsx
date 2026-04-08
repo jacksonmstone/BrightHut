@@ -29,8 +29,12 @@ function App() {
   return (
     <BrowserRouter>
       <PageTransition />
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
       <Navbar />
-      <Routes>
+      <div id="main-content" tabIndex={-1}>
+        <Routes>
         {/* Public */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
@@ -54,7 +58,8 @@ function App() {
         <Route path="/participants" element={<RequireAuth roles={['staff', 'admin']}><ParticipantsPortal /></RequireAuth>} />
         <Route path="/participants/:id" element={<RequireAuth roles={['staff', 'admin']}><ResidentDetail /></RequireAuth>} />
         <Route path="/analytics" element={<RequireAuth roles={['staff', 'admin']}><Analytics /></RequireAuth>} />
-      </Routes>
+        </Routes>
+      </div>
       <CookieBanner />
     </BrowserRouter>
   )

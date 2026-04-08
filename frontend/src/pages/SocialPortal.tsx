@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getSocialMediaPosts } from '../api/social'
 import './SocialPortal.css'
@@ -14,6 +14,7 @@ export default function SocialPortal() {
   const [platformFilter, setPlatformFilter] = useState('All')
   const [visible, setVisible] = useState(12)
   const [activePost, setActivePost] = useState<Post | null>(null)
+  const closeBtnRef = useRef<HTMLButtonElement | null>(null)
 
   useEffect(() => {
     getSocialMediaPosts()
@@ -43,6 +44,12 @@ export default function SocialPortal() {
   const activeDate = useMemo(() => String(activePost?.created_at ?? '—').split('T')[0], [activePost])
   const activeType = useMemo(() => String(activePost?.post_type ?? '—'), [activePost])
   const activeTopic = useMemo(() => String(activePost?.content_topic ?? '—'), [activePost])
+
+  useEffect(() => {
+    if (!activePost) return
+    // Move keyboard focus into the dialog for accessibility.
+    closeBtnRef.current?.focus()
+  }, [activePost])
 
   return (
     <main className="social-page">
@@ -135,7 +142,7 @@ export default function SocialPortal() {
           aria-label="Post details"
           onClick={() => setActivePost(null)}
         >
-          <div className="post-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="post-modal" onClick={(e) => e.stopPropagation()} tabIndex={-1}>
             <div className="post-modal-header">
               <div className="post-modal-title">
                 <span className={`platform-badge platform-${activePlatform.toLowerCase()}`}>{activePlatform}</span>
@@ -146,6 +153,7 @@ export default function SocialPortal() {
                 className="post-modal-close"
                 onClick={() => setActivePost(null)}
                 aria-label="Close"
+                ref={closeBtnRef}
               >
                 ✕
               </button>

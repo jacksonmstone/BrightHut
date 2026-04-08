@@ -106,7 +106,13 @@ export default function ParticipantsPortal() {
     switch (tab) {
       case 'residents':
         return (
-          <div key={i} className="p-card p-card--clickable" onClick={() => navigate(`/participants/${r.resident_id}`)}>
+          <button
+            key={i}
+            type="button"
+            className="p-card p-card--clickable p-card--button"
+            onClick={() => navigate(`/participants/${r.resident_id}`)}
+            aria-label={`Open resident ${String(r.internal_code ?? r.resident_id ?? '')}`}
+          >
             <div className="p-card-header">
               <span className="p-code">{String(r.internal_code ?? '—')}</span>
               <span className={`status-badge status-${String(r.case_status ?? '').toLowerCase()}`}>{String(r.case_status ?? '—')}</span>
@@ -119,7 +125,7 @@ export default function ParticipantsPortal() {
               <div className="p-field"><span className="field-label">Reintegration</span><span>{String(r.reintegration_status ?? '—')}</span></div>
             </div>
             <div className="p-card-footer">View full record →</div>
-          </div>
+          </button>
         )
       case 'process':
         return (
