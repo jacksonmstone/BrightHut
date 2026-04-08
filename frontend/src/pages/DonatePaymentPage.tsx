@@ -40,6 +40,8 @@ export default function DonatePaymentPage() {
   const amountUsd = state.amountUsd
   const note = state.note
 
+  const loggedInEmail = localStorage.getItem('email')
+
   const [donorKind, setDonorKind] = useState<DonorKind>('individual')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -128,6 +130,17 @@ export default function DonatePaymentPage() {
 
             <section className="donate-payment-card" aria-labelledby="donor-heading">
               <h2 id="donor-heading">Who is giving?</h2>
+
+              {loggedInEmail ? (
+                <div className="donate-payment-alert donate-payment-alert--success" role="status">
+                  <strong>Signed in as {loggedInEmail}</strong>
+                  <p>Your account has been recognized. You can complete the placeholder payment below.</p>
+                  <button type="button" className="donate-payment-fake-pay" disabled>
+                    Pay {formatUsd(amountUsd ?? 0)} (coming soon)
+                  </button>
+                </div>
+              ) : (
+              <>
               <p className="donate-payment-hint">
                 Tell us whether you are donating as a person or on behalf of a group or organization.
               </p>
@@ -263,6 +276,8 @@ export default function DonatePaymentPage() {
                     Continue for {orgName.trim() || 'organization'} (placeholder)
                   </button>
                 </div>
+              )}
+              </>
               )}
             </section>
           </>
