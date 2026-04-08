@@ -227,6 +227,42 @@
   margin-bottom: 1rem;
 }
 
+/* Your Direct Impact — hero card */
+.mc-impact-card {
+  background: linear-gradient(135deg, #1a3a2a 0%, #2d5a3d 100%);
+  border-radius: var(--radius);
+  padding: 32px 36px 36px;
+  margin-bottom: 28px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+  color: #fff;
+}
+
+.mc-impact-header {
+  margin-bottom: 24px;
+}
+
+.mc-impact-card h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 6px;
+  letter-spacing: -0.01em;
+}
+
+.mc-impact-desc {
+  font-size: 0.92rem;
+  color: rgba(255,255,255,0.75);
+  margin: 0;
+}
+
+.mc-impact-card .mc-allocation-label { color: rgba(255,255,255,0.9); }
+.mc-impact-card .mc-allocation-pct   { color: rgba(255,255,255,0.6); }
+.mc-impact-card .mc-allocation-amount { color: rgba(255,255,255,0.85); font-weight: 600; }
+.mc-impact-card .mc-allocation-bar-wrap { background: rgba(255,255,255,0.15); }
+.mc-impact-card .mc-allocation-total { color: rgba(255,255,255,0.7); }
+.mc-impact-card .mc-empty-allocations { color: rgba(255,255,255,0.7); }
+.mc-impact-card .mc-empty-allocations p { color: rgba(255,255,255,0.65); }
+
 .mc-empty-allocations {
   text-align: center;
   padding: 2rem;

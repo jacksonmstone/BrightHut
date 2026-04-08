@@ -172,6 +172,56 @@ export default function MyContributions() {
         </div>
       </div>
 
+      {/* Your Direct Impact — most important section, shown first */}
+      <section className="mc-impact-card" aria-labelledby="mc-impact-heading">
+        <div className="mc-impact-header">
+          <h2 id="mc-impact-heading">Your Direct Impact</h2>
+          <p className="mc-impact-desc">
+            Here's exactly how BrightHut has put your generosity to work across our program areas.
+          </p>
+        </div>
+        {allocationsByArea.length === 0 ? (
+          <div className="mc-empty-allocations">
+            <span className="mc-empty-icon">🌱</span>
+            <p>No allocations on record yet. Staff allocate funds after each donation cycle — check back soon.</p>
+          </div>
+        ) : (
+          <>
+            <div className="mc-allocations">
+              {allocationsByArea.map(([area, amount]) => {
+                const totalAllocated = allocationsByArea.reduce((s, [, v]) => s + v, 0)
+                const pct = totalAllocated > 0 ? Math.round((amount / totalAllocated) * 100) : 0
+                const areaColors: Record<string, string> = {
+                  Education: '#4f8ef7',
+                  Wellbeing: '#34c77b',
+                  Transport: '#f5a623',
+                  Operations: '#9b59b6',
+                  Maintenance: '#e67e22',
+                  Outreach: '#1abc9c',
+                }
+                const color = areaColors[area] ?? '#6b7280'
+                return (
+                  <div key={area} className="mc-allocation-row">
+                    <div className="mc-allocation-meta">
+                      <span className="mc-allocation-dot" style={{ background: color }} />
+                      <span className="mc-allocation-label">{area}</span>
+                      <span className="mc-allocation-pct">{pct}%</span>
+                    </div>
+                    <div className="mc-allocation-bar-wrap">
+                      <div className="mc-allocation-bar" style={{ width: `${pct}%`, background: color }} />
+                    </div>
+                    <span className="mc-allocation-amount">{fmt(amount)}</span>
+                  </div>
+                )
+              })}
+            </div>
+            <p className="mc-allocation-total">
+              Total allocated: <strong>{fmt(allocationsByArea.reduce((s, [, v]) => s + v, 0))}</strong>
+            </p>
+          </>
+        )}
+      </section>
+
       <div className="mc-actions-row">
         <button type="button" className="mc-donate-btn mc-donate-btn--secondary" onClick={() => navigate('/donate')}>
           Make Another Donation
@@ -264,52 +314,6 @@ export default function MyContributions() {
         )}
       </section>
 
-      <section className="mc-section">
-        <h2>Where Your Gifts Go</h2>
-        <p className="mc-section-desc">
-          This breakdown shows how your donations have been allocated across BrightHut's program areas.
-        </p>
-        {allocationsByArea.length === 0 ? (
-          <div className="mc-empty-allocations">
-            <span className="mc-empty-icon">📋</span>
-            <p>No allocations on record yet. Staff allocate funds after each donation cycle — check back soon.</p>
-          </div>
-        ) : (
-          <>
-            <div className="mc-allocations">
-              {allocationsByArea.map(([area, amount]) => {
-                const totalAllocated = allocationsByArea.reduce((s, [, v]) => s + v, 0)
-                const pct = totalAllocated > 0 ? Math.round((amount / totalAllocated) * 100) : 0
-                const areaColors: Record<string, string> = {
-                  Education: '#4f8ef7',
-                  Wellbeing: '#34c77b',
-                  Transport: '#f5a623',
-                  Operations: '#9b59b6',
-                  Maintenance: '#e67e22',
-                  Outreach: '#1abc9c',
-                }
-                const color = areaColors[area] ?? '#6b7280'
-                return (
-                  <div key={area} className="mc-allocation-row">
-                    <div className="mc-allocation-meta">
-                      <span className="mc-allocation-dot" style={{ background: color }} />
-                      <span className="mc-allocation-label">{area}</span>
-                      <span className="mc-allocation-pct">{pct}%</span>
-                    </div>
-                    <div className="mc-allocation-bar-wrap">
-                      <div className="mc-allocation-bar" style={{ width: `${pct}%`, background: color }} />
-                    </div>
-                    <span className="mc-allocation-amount">{fmt(amount)}</span>
-                  </div>
-                )
-              })}
-            </div>
-            <p className="mc-allocation-total">
-              Total allocated: <strong>{fmt(allocationsByArea.reduce((s, [, v]) => s + v, 0))}</strong>
-            </p>
-          </>
-        )}
-      </section>
     </main>
   )
 }
