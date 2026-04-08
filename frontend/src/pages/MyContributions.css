@@ -190,9 +190,23 @@
 
 .mc-allocation-row {
   display: grid;
-  grid-template-columns: 160px 1fr 100px;
+  grid-template-columns: 1fr auto;
+  gap: 6px 12px;
   align-items: center;
-  gap: 12px;
+}
+
+.mc-allocation-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  grid-column: 1;
+}
+
+.mc-allocation-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .mc-allocation-label {
@@ -201,11 +215,43 @@
   color: var(--text);
 }
 
+.mc-allocation-pct {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.mc-section-desc {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+}
+
+.mc-empty-allocations {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mc-empty-icon { font-size: 2rem; }
+
+.mc-allocation-total {
+  margin-top: 1rem;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
 .mc-allocation-bar-wrap {
   background: var(--border);
   border-radius: 999px;
   height: 8px;
   overflow: hidden;
+  grid-column: 1 / -1;
 }
 
 .mc-allocation-bar {
