@@ -63,7 +63,7 @@ export default function Home() {
     el.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [location.hash])
 
-  const rawName = localStorage.getItem('email')?.split('@')[0] ?? 'there'
+  const rawName = (localStorage.getItem('email')?.split('@')[0] ?? 'there').split('.')[0].split('_')[0]
   const donorName = rawName.charAt(0).toUpperCase() + rawName.slice(1)
 
   return (
