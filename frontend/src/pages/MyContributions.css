@@ -76,7 +76,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin-bottom: 28px;
+  margin-bottom: 12px;
 }
 
 .mc-donate-btn--secondary {
