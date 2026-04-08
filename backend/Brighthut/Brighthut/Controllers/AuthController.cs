@@ -73,16 +73,23 @@ public class AuthController : ControllerBase
 
     private void EnsureColumnSqlServer(string table, string column, string definition)
     {
-        using var conn = _factory.CreateConnection();
-        conn.Open();
-        using var cmd = conn.CreateCommand();
-        cmd.CommandText = $@"
-            IF NOT EXISTS (
-                SELECT 1 FROM sys.columns
-                WHERE object_id = OBJECT_ID('{table}') AND name = '{column}'
-            )
-                ALTER TABLE {table} ADD {column} {definition}";
-        cmd.ExecuteNonQuery();
+        try
+        {
+            using var conn = _factory.CreateConnection();
+            conn.Open();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = $@"
+                IF NOT EXISTS (
+                    SELECT 1 FROM sys.columns
+                    WHERE object_id = OBJECT_ID('{table}') AND name = '{column}'
+                )
+                    ALTER TABLE {table} ADD {column} {definition}";
+            cmd.ExecuteNonQuery();
+        }
+        catch
+        {
+            // Column likely already exists or insufficient permissions; ignore.
+        }
     }
 
     // POST /api/auth/register
