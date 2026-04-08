@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getSupporters } from '../api/supporters'
 import { getDonations, getDonationAllocations } from '../api/donations'
-import { createDonorDemoDonation } from '../api/donor'
 import { phpToUsd, formatUsd } from '../components/donationProgress'
 import './MyContributions.css'
 
@@ -42,13 +41,7 @@ export default function MyContributions() {
   const [allocations, setAllocations] = useState<Row[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [refreshKey, setRefreshKey] = useState(0)
-
-  const [giftUsd, setGiftUsd] = useState('50')
-  const [giftNote, setGiftNote] = useState('')
-  const [giftSubmitting, setGiftSubmitting] = useState(false)
-  const [giftMsg, setGiftMsg] = useState<string | null>(null)
-  const [giftErr, setGiftErr] = useState<string | null>(null)
+  const [refreshKey] = useState(0)
 
   useEffect(() => {
     setLoading(true)
@@ -95,37 +88,6 @@ export default function MyContributions() {
     return Object.entries(map).filter(([, v]) => phpToUsd(v) >= 0.5).sort((a, b) => b[1] - a[1])
   }, [myAllocations])
 
-  const handleDemoGift = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setGiftErr(null)
-    setGiftMsg(null)
-    const n = parseFloat(giftUsd.replace(/,/g, ''))
-    if (!Number.isFinite(n) || n <= 0) {
-      setGiftErr('Enter a valid amount in USD.')
-      return
-    }
-    if (n > 1_000_000) {
-      setGiftErr('Amount is too large for a demo gift.')
-      return
-    }
-    setGiftSubmitting(true)
-    try {
-      const res = await createDonorDemoDonation({
-        amountUsd: n,
-        notes: giftNote.trim() || undefined,
-        campaignName: 'Donor Dashboard',
-      })
-      setGiftMsg(
-        `Recorded ${formatUsd(res.amount_usd)} (stored as ₱${Math.round(res.amount_php).toLocaleString()}). Thank you!`
-      )
-      setGiftNote('')
-      setRefreshKey((k) => k + 1)
-    } catch (err) {
-      setGiftErr(err instanceof Error ? err.message : 'Could not record your gift.')
-    } finally {
-      setGiftSubmitting(false)
-    }
-  }
 
   if (loading) return <main className="my-contributions"><p className="mc-loading">Loading your contributions…</p></main>
   if (error) return <main className="my-contributions"><p className="mc-error">{error}</p></main>
@@ -222,54 +184,6 @@ export default function MyContributions() {
         </button>
       </div>
 
-      <section className="mc-gift-card" aria-labelledby="mc-gift-heading">
-        <h2 id="mc-gift-heading">Record a demo gift</h2>
-        <p className="mc-gift-lead">
-          This does not charge a real card — it saves a monetary gift to our database so you can see your history update
-          instantly (amounts are stored in Philippine pesos using the same rate as the rest of the site).
-        </p>
-        <form className="mc-gift-form" onSubmit={handleDemoGift}>
-          <label className="mc-gift-label">
-            Amount (USD)
-            <input
-              type="text"
-              inputMode="decimal"
-              className="mc-gift-input"
-              value={giftUsd}
-              onChange={(e) => setGiftUsd(e.target.value)}
-              autoComplete="off"
-            />
-          </label>
-          <label className="mc-gift-label mc-gift-label--full">
-            Note (optional)
-            <input
-              type="text"
-              className="mc-gift-input"
-              value={giftNote}
-              onChange={(e) => setGiftNote(e.target.value)}
-              placeholder="In honor of…"
-            />
-          </label>
-          <button type="submit" className="mc-gift-submit" disabled={giftSubmitting}>
-            {giftSubmitting ? 'Saving…' : 'Save gift to database'}
-          </button>
-        </form>
-        {giftErr ? (
-          <p className="mc-gift-feedback mc-gift-feedback--error" role="alert">
-            {giftErr}
-          </p>
-        ) : null}
-        {giftMsg ? <p className="mc-gift-feedback mc-gift-feedback--ok">{giftMsg}</p> : null}
-      </section>
-
-      {!supporter ? (
-        <div className="mc-empty mc-empty--soft">
-          <p>
-            No supporter profile was on file for <strong>{email}</strong> yet — use &quot;Record a demo gift&quot; above to
-            create one and see your giving history below.
-          </p>
-        </div>
-      ) : null}
 
       {/* Donation history */}
       <section className="mc-section">
