@@ -5,14 +5,18 @@ Seed users into database/brighthut.sqlite.
 Requires: pip install bcrypt
 
 Run from repo root:
-  python database/seed_users.py
+  SEED_STAFF_PASSWORD=<pass> SEED_DONOR_PASSWORD=<pass> python database/seed_users.py
 
-Edit USERS below to add/modify test users before deploying.
+Required environment variables:
+  SEED_STAFF_PASSWORD  — password for staff@brighthut.org
+  SEED_DONOR_PASSWORD  — password for donor@brighthut.org
+
 role must be 'staff' or 'donor'.
 """
 
 from __future__ import annotations
 
+import os
 import sqlite3
 from pathlib import Path
 
@@ -24,18 +28,29 @@ except ImportError:
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = REPO_ROOT / "database" / "brighthut.sqlite"
 
-# ── Edit this list to define your users ──────────────────────────────────────
+# ── Load passwords from environment variables (never hardcode) ────────────────
+_staff_password = os.environ.get("SEED_STAFF_PASSWORD")
+_donor_password = os.environ.get("SEED_DONOR_PASSWORD")
+
+missing = [v for v, val in [("SEED_STAFF_PASSWORD", _staff_password), ("SEED_DONOR_PASSWORD", _donor_password)] if not val]
+if missing:
+    raise SystemExit(
+        f"Missing required environment variable(s): {', '.join(missing)}\n"
+        "Set them before running this script:\n"
+        "  export SEED_STAFF_PASSWORD='...' SEED_DONOR_PASSWORD='...'"
+    )
+
 USERS: list[dict] = [
     {
         "email": "staff@brighthut.org",
-        "password": "BrightHut2024!",
+        "password": _staff_password,
         "role": "staff",
         "first_name": "Staff",
         "last_name": "Admin",
     },
     {
         "email": "donor@brighthut.org",
-        "password": "BrightHut2024!",
+        "password": _donor_password,
         "role": "donor",
         "first_name": "Test",
         "last_name": "Donor",
