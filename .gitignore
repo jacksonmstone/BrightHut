@@ -36,4 +36,7 @@ pnpm-debug.log*
 **/appsettings.*.json
 !**/appsettings.json
 !**/appsettings.Development.json
+.env
+.env.*
+!.env.example
 database/__pycache__/

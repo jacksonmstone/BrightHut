@@ -28,44 +28,61 @@ public class AuthController : ControllerBase
 
     private void EnsureTwoFactorColumns()
     {
-        using var conn = _factory.CreateConnection();
-        conn.Open();
-        using var cmd = conn.CreateCommand();
-        cmd.CommandText = @"
-            ALTER TABLE users ADD COLUMN two_factor_secret TEXT;
-            ALTER TABLE users ADD COLUMN two_factor_enabled INTEGER NOT NULL DEFAULT 0;";
-        try
+        if (_factory.IsSqlite)
         {
-            cmd.ExecuteNonQuery();
+            using var conn = _factory.CreateConnection();
+            conn.Open();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = @"
+                ALTER TABLE users ADD COLUMN two_factor_secret TEXT;
+                ALTER TABLE users ADD COLUMN two_factor_enabled INTEGER NOT NULL DEFAULT 0;";
+            try { cmd.ExecuteNonQuery(); } catch { }
         }
-        catch
+        else
         {
-            // Columns likely already exist; ignore.
+            EnsureColumnSqlServer("users", "two_factor_secret", "NVARCHAR(MAX)");
+            EnsureColumnSqlServer("users", "two_factor_enabled", "INT NOT NULL DEFAULT 0");
         }
     }
 
     private void EnsureGoogleAuthColumns()
     {
+        if (_factory.IsSqlite)
+        {
+            using var conn = _factory.CreateConnection();
+            conn.Open();
+            foreach (var (col, def) in new[]
+            {
+                ("auth_provider", "TEXT NOT NULL DEFAULT 'local'"),
+                ("google_sub", "TEXT"),
+                ("google_profile_completed", "INTEGER NOT NULL DEFAULT 0"),
+            })
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = $"ALTER TABLE users ADD COLUMN {col} {def}";
+                try { cmd.ExecuteNonQuery(); } catch { }
+            }
+        }
+        else
+        {
+            EnsureColumnSqlServer("users", "auth_provider", "NVARCHAR(50) NOT NULL DEFAULT 'local'");
+            EnsureColumnSqlServer("users", "google_sub", "NVARCHAR(MAX)");
+            EnsureColumnSqlServer("users", "google_profile_completed", "INT NOT NULL DEFAULT 0");
+        }
+    }
+
+    private void EnsureColumnSqlServer(string table, string column, string definition)
+    {
         using var conn = _factory.CreateConnection();
         conn.Open();
-
-        using (var providerCmd = conn.CreateCommand())
-        {
-            providerCmd.CommandText = "ALTER TABLE users ADD COLUMN auth_provider TEXT NOT NULL DEFAULT 'local'";
-            try { providerCmd.ExecuteNonQuery(); } catch { }
-        }
-
-        using (var subCmd = conn.CreateCommand())
-        {
-            subCmd.CommandText = "ALTER TABLE users ADD COLUMN google_sub TEXT";
-            try { subCmd.ExecuteNonQuery(); } catch { }
-        }
-
-        using (var completeCmd = conn.CreateCommand())
-        {
-            completeCmd.CommandText = "ALTER TABLE users ADD COLUMN google_profile_completed INTEGER NOT NULL DEFAULT 0";
-            try { completeCmd.ExecuteNonQuery(); } catch { }
-        }
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = $@"
+            IF NOT EXISTS (
+                SELECT 1 FROM sys.columns
+                WHERE object_id = OBJECT_ID('{table}') AND name = '{column}'
+            )
+                ALTER TABLE {table} ADD {column} {definition}";
+        cmd.ExecuteNonQuery();
     }
 
     // POST /api/auth/register
