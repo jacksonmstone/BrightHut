@@ -43,7 +43,7 @@ public class AuthController : ControllerBase
         using var check = conn.CreateCommand();
         check.CommandText = "SELECT COUNT(*) FROM users WHERE email = @email";
         check.Parameters.AddWithValue("@email", req.Email.ToLower());
-        var exists = (long)(check.ExecuteScalar() ?? 0L);
+        var exists = Convert.ToInt64(check.ExecuteScalar() ?? 0L);
         if (exists > 0)
             return Conflict(new { error = "An account with that email already exists." });
 
@@ -70,7 +70,7 @@ public class AuthController : ControllerBase
         cmd.Parameters.AddWithValue("@acqChannel", req.AcquisitionChannel ?? (object)DBNull.Value);
         cmd.Parameters.AddWithValue("@suppType", req.SupporterType ?? (object)DBNull.Value);
 
-        var newId = (long)(cmd.ExecuteScalar() ?? 0L);
+        var newId = Convert.ToInt64(cmd.ExecuteScalar() ?? 0L);
         var token = GenerateToken(newId, req.Email.ToLower(), "donor");
 
         return Ok(new { token, role = "donor", email = req.Email.ToLower(), firstName = req.FirstName });
