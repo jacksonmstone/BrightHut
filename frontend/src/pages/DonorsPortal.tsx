@@ -178,26 +178,6 @@ export default function DonorsPortal() {
 
   const totalMonetary = data.donations.filter(d => d.donation_type === 'Monetary').reduce((sum, d) => sum + Number(d.amount ?? 0), 0)
 
-  const churnSummary = useMemo(() => {
-    if (churnScores.size === 0) return null
-    let atRisk = 0, moderate = 0
-    for (const entry of churnScores.values()) {
-      if (entry.churnTier === 'At Risk') atRisk++
-      else if (entry.churnTier === 'Moderate') moderate++
-    }
-    return { atRisk, moderate }
-  }, [churnScores])
-
-  const upgradeSummary = useMemo(() => {
-    if (upgradeScores.size === 0) return null
-    let high = 0, medium = 0
-    for (const entry of upgradeScores.values()) {
-      if (entry.upgradeTier === 'HIGH') high++
-      else if (entry.upgradeTier === 'MEDIUM') medium++
-    }
-    return { high, medium }
-  }, [upgradeScores])
-
   const rows = data[tab]
   const filtered = rows.filter((r) => {
     const matchSearch = Object.values(r).some((v) => String(v ?? '').toLowerCase().includes(search.toLowerCase()))
@@ -454,30 +434,6 @@ export default function DonorsPortal() {
               </select>
             )}
           </div>
-          {(churnSummary || upgradeSummary) && (
-            <div className="dp-insight-pills">
-              {churnSummary && churnSummary.atRisk > 0 && (
-                <span className="dp-insight-pill dp-insight-pill--churn">
-                  {churnSummary.atRisk} at risk of churn
-                </span>
-              )}
-              {churnSummary && churnSummary.moderate > 0 && (
-                <span className="dp-insight-pill dp-insight-pill--moderate">
-                  {churnSummary.moderate} moderate churn risk
-                </span>
-              )}
-              {upgradeSummary && upgradeSummary.high > 0 && (
-                <span className="dp-insight-pill dp-insight-pill--upgrade">
-                  {upgradeSummary.high} likely to upgrade if asked
-                </span>
-              )}
-              {upgradeSummary && upgradeSummary.medium > 0 && (
-                <span className="dp-insight-pill dp-insight-pill--upgrade-med">
-                  {upgradeSummary.medium} medium upgrade potential
-                </span>
-              )}
-            </div>
-          )}
         </>
       )}
 

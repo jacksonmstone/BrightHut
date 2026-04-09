@@ -419,6 +419,23 @@
 .rd-risk-bar-fill--moderate { background: #f59e0b; }
 .rd-risk-bar-fill--high     { background: #ef4444; }
 
+/* ── Intervention effectiveness badges ── */
+.rd-intervention-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+}
+.rd-intervention-badge--improving    { background: #d1fae5; color: #065f46; }
+.rd-intervention-badge--on-track     { background: #dbeafe; color: #1e40af; }
+.rd-intervention-badge--review       { background: #fef3c7; color: #92400e; }
+.rd-intervention-badge--insufficient { background: #f3f4f6; color: #6b7280; }
+
+/* Intervention bar fills */
+.rd-intervention-bar-fill--improving { background: #10b981; }
+.rd-intervention-bar-fill--on-track  { background: #3b82f6; }
+.rd-intervention-bar-fill--review    { background: #f59e0b; }
+
 /* ── Driver groups ── */
 .rd-driver-group {
   margin-bottom: 14px;

@@ -59,3 +59,23 @@ export interface RegressionRisk {
 /** Fetch the regression risk score for one resident. Requires staff or admin JWT. */
 export const getResidentRegressionRisk = (residentId: number) =>
   apiFetch<RegressionRisk>(`/api/residents/${residentId}/regression-risk`)
+
+// ── Intervention Effectiveness ML model output ────────────────────────────────
+// Served by InterventionEffectivenessController.cs (staff/admin only).
+// Scores are computed server-side from logistic regression weights
+// derived in ml-pipelines/intervention-effectiveness.ipynb.
+
+export interface InterventionEffectiveness {
+  residentId: number
+  statusLabel: 'IMPROVING' | 'ON TRACK' | 'REVIEW NEEDED' | 'INSUFFICIENT DATA'
+  improvementScore: number | null   // null when INSUFFICIENT DATA
+  flag: boolean                     // true when REVIEW NEEDED (score < 0.45)
+  topDomain: 'emotion' | 'health' | 'education' | null
+  topDomainLabel: string | null
+  modelVersion: string
+  disclaimer: string
+}
+
+/** Fetch the intervention effectiveness score for one resident. Requires staff or admin JWT. */
+export const getInterventionEffectiveness = (residentId: number) =>
+  apiFetch<InterventionEffectiveness>(`/api/residents/${residentId}/intervention-effectiveness`)

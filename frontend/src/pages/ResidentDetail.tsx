@@ -10,8 +10,9 @@ import {
   getIncidentReports,
   getResidentReadinessScore,
   getResidentRegressionRisk,
+  getInterventionEffectiveness,
 } from '../api/residents'
-import type { ReadinessScore, RegressionRisk } from '../api/residents'
+import type { ReadinessScore, RegressionRisk, InterventionEffectiveness } from '../api/residents'
 import { getSafehouses } from '../api/safehouses'
 import { insertRow, updateRow } from '../api/tables'
 import FormModal from '../components/FormModal'
@@ -277,6 +278,40 @@ function getRiskActionNote(rawKey: string): string {
   }
 }
 
+// Intervention effectiveness: staff note for status + top domain
+function getInterventionNote(statusLabel: string, topDomain: string | null): string {
+  if (statusLabel === 'IMPROVING') {
+    switch (topDomain) {
+      case 'emotion':   return 'Strong emotional gains — reinforce by maintaining session frequency and acknowledging progress explicitly.'
+      case 'health':    return 'Health is trending up — continue current wellness support and document improvements for case reports.'
+      case 'education': return 'Educational engagement is the top strength — keep school routines stable as a foundation for other recovery.'
+      default:          return 'Positive trajectory across domains — maintain the current intervention mix and document what is working.'
+    }
+  }
+  if (statusLabel === 'ON TRACK') {
+    switch (topDomain) {
+      case 'emotion':   return 'Emotional progress is steady — consider adding a group counseling session to build on individual gains.'
+      case 'health':    return 'Health is stable — introduce regular physical activity to support continued improvement.'
+      case 'education': return 'Education is the strongest domain — leverage school success to build confidence in other areas.'
+      default:          return 'Progress is on track — review plan completion rates and address any incomplete goals before the next case conference.'
+    }
+  }
+  // REVIEW NEEDED
+  switch (topDomain) {
+    case 'emotion':   return 'Emotional state is a primary concern — increase session frequency and consult a trauma-informed specialist if available.'
+    case 'health':    return 'Health scores are declining — schedule a medical check and review nutrition and sleep routines.'
+    case 'education': return 'Educational engagement is low — coordinate with school staff to reduce barriers to attendance.'
+    default:          return 'Multiple domains need attention — prioritize a full case review with the team to reset intervention goals.'
+  }
+}
+
+function interventionStatusKey(s: string): string {
+  if (s === 'IMPROVING')   return 'improving'
+  if (s === 'ON TRACK')    return 'on-track'
+  if (s === 'REVIEW NEEDED') return 'review'
+  return 'insufficient'
+}
+
 export default function ResidentDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -296,11 +331,13 @@ export default function ResidentDetail() {
   const [formState, setFormState] = useState<FormState | null>(null)
   const [readinessScore, setReadinessScore] = useState<ReadinessScore | null>(null)
   const [regressionRisk, setRegressionRisk] = useState<RegressionRisk | null>(null)
+  const [interventionEff, setInterventionEff] = useState<InterventionEffectiveness | null>(null)
 
   useEffect(() => {
     setLoading(true)
     setReadinessScore(null)
     setRegressionRisk(null)
+    setInterventionEff(null)
     Promise.all([
       getResidents(),
       getSafehouses(),
@@ -328,6 +365,7 @@ export default function ResidentDetail() {
         const rid_ = Number(rid)
         getResidentReadinessScore(rid_).then(setReadinessScore).catch(() => {})
         getResidentRegressionRisk(rid_).then(setRegressionRisk).catch(() => {})
+        getInterventionEffectiveness(rid_).then(setInterventionEff).catch(() => {})
       })
       .catch(() => setError('Failed to load resident data.'))
       .finally(() => setLoading(false))
@@ -478,7 +516,7 @@ export default function ResidentDetail() {
               </div>
             </section>
 
-            {(readinessScore || regressionRisk) && (() => {
+            {(readinessScore || regressionRisk || interventionEff) && (() => {
               const readTier    = readinessScore?.readinessTier
               const readTierKey = readTier === 'High Readiness' ? 'high' : readTier === 'Moderate Readiness' ? 'moderate' : 'low'
               const readPct     = readinessScore ? Math.round(readinessScore.readinessScore * 100) : null
@@ -494,11 +532,11 @@ export default function ResidentDetail() {
                 <section className="rd-section rd-section--highlight">
                   <h2>Clinical Assessment</h2>
                   <p className="rd-readiness-explainer">
-                    Two ML models assess this resident's current standing: reintegration readiness
-                    (how prepared they are for successful reintegration) and regression risk (whether
-                    behavioral or emotional decline is likely). Strengths come from the readiness model;
-                    focus areas come from the regression risk model — so every suggested action is tied
-                    to an active, changeable risk factor.
+                    Three ML models assess this resident's current standing: reintegration readiness
+                    (how prepared they are for successful reintegration), regression risk (whether
+                    behavioral or emotional decline is likely), and intervention effectiveness (whether
+                    current support programs are producing measurable cross-domain progress). Together
+                    they surface both strengths to reinforce and active risks to address.
                   </p>
 
                   {readinessScore && readPct !== null && (
@@ -578,8 +616,55 @@ export default function ResidentDetail() {
                     </div>
                   )}
 
+                  {interventionEff && (() => {
+                    const statusKey = interventionStatusKey(interventionEff.statusLabel)
+                    const isInsufficient = interventionEff.statusLabel === 'INSUFFICIENT DATA'
+                    const pct = interventionEff.improvementScore !== null
+                      ? Math.round(interventionEff.improvementScore * 100) : null
+                    return (
+                      <div className="rd-score-block">
+                        <div className="rd-score-block-header">
+                          <span className="rd-score-block-label">Intervention Effectiveness</span>
+                          <span className={`rd-intervention-badge rd-intervention-badge--${statusKey}`}>
+                            {isInsufficient ? 'Insufficient Data' : interventionEff.statusLabel}
+                          </span>
+                        </div>
+                        {!isInsufficient && pct !== null && (
+                          <div className="rd-readiness-score-row">
+                            <span className="rd-readiness-pct">{pct}%</span>
+                            <div className="rd-score-bar-track">
+                              <div
+                                className={`rd-intervention-bar-fill rd-intervention-bar-fill--${statusKey}`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                        {!isInsufficient && interventionEff.topDomainLabel && (
+                          <div className="rd-driver-group">
+                            <p className="rd-driver-group-label rd-driver-group-label--positive">Strongest domain</p>
+                            <div className="rd-driver-row rd-driver-row--strength">
+                              <span className="rd-driver-icon rd-driver-icon--positive">✓</span>
+                              <div className="rd-driver-text">
+                                <span className="rd-driver-feature">{interventionEff.topDomainLabel}</span>
+                                <span className="rd-driver-reinforce">
+                                  {getInterventionNote(interventionEff.statusLabel, interventionEff.topDomain)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        {isInsufficient && (
+                          <p className="rd-no-negatives-note">
+                            At least 2 process recordings are needed to generate a score. Add session records to enable this assessment.
+                          </p>
+                        )}
+                      </div>
+                    )
+                  })()}
+
                   <p className="rd-readiness-disclaimer">
-                    {readinessScore?.disclaimer ?? regressionRisk?.disclaimer}
+                    {readinessScore?.disclaimer ?? regressionRisk?.disclaimer ?? interventionEff?.disclaimer}
                   </p>
                 </section>
               )

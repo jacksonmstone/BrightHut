@@ -60,7 +60,7 @@
   flex-wrap: wrap;
 }
 
-.tab-scroll { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.tab-scroll { display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: center; }
 
 .tab-btn {
   background: none;
@@ -207,27 +207,6 @@
 }
 .dp-add-btn:hover { background: var(--primary-dark); }
 
-/* ── Insight pills (churn + upgrade summary) ──────────────────────────────── */
-
-.dp-insight-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
-.dp-insight-pill {
-  display: inline-flex;
-  align-items: center;
-  font-size: 0.78rem;
-  font-weight: 600;
-  padding: 0.2rem 0.65rem;
-  border-radius: 999px;
-  white-space: nowrap;
-}
-.dp-insight-pill--churn      { background: #fee2e2; color: #991b1b; }
-.dp-insight-pill--moderate   { background: #fef3c7; color: #92400e; }
-.dp-insight-pill--upgrade     { background: #ede9fe; color: #5b21b6; }
-.dp-insight-pill--upgrade-med { background: #e0e7ff; color: #3730a3; }
 
 .dp-churn-row {
   display: flex;
