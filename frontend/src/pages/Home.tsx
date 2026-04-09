@@ -5,6 +5,10 @@ import { getSafehouseMonthlyMetrics } from '../api/impact'
 import DonationCallout from '../components/DonationCallout'
 import safehouseCommunity from '../assets/safehouse-community.png'
 import sandboarding from '../assets/sandboarding.png'
+import dashboardIcon from '../assets/dashboard-icon.png'
+import socialMediaIcon from '../assets/social-media-icon.png'
+import donorIcon from '../assets/donor-icon.png'
+import participantsIcon from '../assets/participants-icon.png'
 import { formatUsd, phpToUsd } from '../components/donationProgress'
 import './Home.css'
 
@@ -19,28 +23,28 @@ const privatePortals = [
   {
     title: 'Dashboard',
     description: 'Command center — active residents, donations, incidents, and case conferences.',
-    icon: '📊',
+    icon: dashboardIcon,
     path: '/dashboard',
     color: 'teal',
   },
   {
     title: 'Social Media Portal',
     description: 'Stay connected and engage with our community across platforms.',
-    icon: '💬',
+    icon: socialMediaIcon,
     path: '/social',
     color: 'blue',
   },
   {
     title: 'Donors Portal',
     description: 'View all donor records, donation history, and contribution data.',
-    icon: '🤝',
+    icon: donorIcon,
     path: '/donors',
     color: 'sand',
   },
   {
     title: 'Participants Portal',
     description: 'Access resources, updates, and tools for program participants.',
-    icon: '⭐',
+    icon: participantsIcon,
     path: '/participants',
     color: 'teal',
   },
@@ -294,7 +298,7 @@ export default function Home() {
                   className={`portal-card portal-card--${portal.color}${!isStaffLike ? ' portal-card--featured' : ''}`}
                   onClick={() => navigate(portal.path)}
                 >
-                  {portal.icon && <span className="portal-icon">{portal.icon}</span>}
+                  {portal.icon && <img src={portal.icon} alt={`${portal.title} icon`} className="portal-icon" />}
                   <h3 className="portal-title">{portal.title}</h3>
                   <p className="portal-desc">{portal.description}</p>
                   <span className="portal-arrow">View now →</span>
