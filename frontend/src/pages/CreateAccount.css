@@ -70,6 +70,83 @@
   margin-top: 12px;
 }
 
+.create-account-fields-summary {
+  text-align: left;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-muted, #4b5563);
+  background: var(--primary-light, #fff8eb);
+  border: 1px solid var(--border, #eadfcd);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 28px;
+}
+
+.create-account-fields-summary-title {
+  font-weight: 700;
+  color: var(--primary-dark, #1a1a1a);
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.create-account-fields-summary p {
+  margin: 0 0 8px;
+}
+
+.create-account-fields-summary p:last-child {
+  margin-bottom: 0;
+}
+
+.form-label-badge {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
+.form-label-badge--required {
+  background: rgba(210, 162, 58, 0.2);
+  color: var(--primary-dark, #92400e);
+}
+
+.form-label-badge--optional {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.create-account-password-block {
+  margin: 8px 0 20px;
+  padding: 14px 14px 4px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid transparent;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.create-account-password-block--error {
+  border-color: #fca5a5;
+  background: #fff5f5;
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.15);
+}
+
+.create-account-password-heading {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--primary-dark, #1a1a1a);
+}
+
+.create-account-password-rules {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-muted, #6b7280);
+}
+
 /* Role Selection Grid */
 .role-selection-grid {
   display: grid;

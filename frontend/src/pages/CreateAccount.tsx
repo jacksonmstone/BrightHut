@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { register } from '../api/auth'
 import './CreateAccount.css'
@@ -87,6 +87,27 @@ export default function CreateAccount() {
   const [passwordError, setPasswordError] = useState('')
   const [formError, setFormError] = useState('')
 
+  const passwordSectionRef = useRef<HTMLDivElement>(null)
+  const passwordInputRef = useRef<HTMLInputElement>(null)
+
+  const scrollToPasswordFields = useCallback(() => {
+    requestAnimationFrame(() => {
+      passwordSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      window.setTimeout(() => passwordInputRef.current?.focus(), 400)
+    })
+  }, [])
+
+  /** Password / confirm validation failures — show message and move user to password area */
+  const setPasswordIssue = useCallback(
+    (message: string) => {
+      setFormError('')
+      setSubmitError('')
+      setPasswordError(message)
+      scrollToPasswordFields()
+    },
+    [scrollToPasswordFields],
+  )
+
   const fromDonationFlow = Boolean((location.state as CreateAccountLocationState | null)?.fromDonation)
 
   const isOrganization = formData.supporterType === 'PartnerOrganization'
@@ -106,66 +127,73 @@ export default function CreateAccount() {
     setFormError('')
     // Required selects / text (we use noValidate so this always runs — native HTML validation was blocking submit with no clear UI)
     if (!formData.supporterType) {
+      setPasswordError('')
       setFormError('Please go back and choose how you would like to contribute.')
       return
     }
     if (!formData.email.trim()) {
+      setPasswordError('')
       setFormError('Email is required.')
       return
     }
     if (!isOrganization && (!formData.firstName.trim() || !formData.lastName.trim())) {
+      setPasswordError('')
       setFormError('First and last name are required.')
       return
     }
     if (isOrganization && !formData.organizationName.trim()) {
+      setPasswordError('')
       setFormError('Organization name is required.')
       return
     }
     if (!formData.country.trim()) {
+      setPasswordError('')
       setFormError('Country is required.')
       return
     }
     if (!formData.relationshipType) {
+      setPasswordError('')
       setFormError('Please select a relationship type.')
       return
     }
     if (!formData.acquisitionChannel) {
+      setPasswordError('')
       setFormError('Please tell us how you heard about BrightHut.')
       return
     }
     if (formData.password !== formData.confirmPassword) {
-      setPasswordError('Passwords do not match.')
+      setPasswordIssue('Passwords do not match.')
       return
     }
     if (formData.password.length < 12) {
-      setPasswordError('Password must be at least 12 characters.')
+      setPasswordIssue('Password must be at least 12 characters.')
       return
     }
     if (!/[A-Z]/.test(formData.password)) {
-      setPasswordError('Password must include at least one uppercase letter.')
+      setPasswordIssue('Password must include at least one uppercase letter.')
       return
     }
     if (!/[a-z]/.test(formData.password)) {
-      setPasswordError('Password must include at least one lowercase letter.')
+      setPasswordIssue('Password must include at least one lowercase letter.')
       return
     }
     if (!/[0-9]/.test(formData.password)) {
-      setPasswordError('Password must include at least one number.')
+      setPasswordIssue('Password must include at least one number.')
       return
     }
     if (!/[^A-Za-z0-9]/.test(formData.password)) {
-      setPasswordError('Password must include at least one special character.')
+      setPasswordIssue('Password must include at least one special character.')
       return
     }
     if (/\s/.test(formData.password)) {
-      setPasswordError('Password cannot contain spaces.')
+      setPasswordIssue('Password cannot contain spaces.')
       return
     }
     if (
       formData.email &&
       formData.password.toLowerCase().includes(formData.email.trim().toLowerCase().split('@')[0] ?? '')
     ) {
-      setPasswordError('Password cannot contain your email name.')
+      setPasswordIssue('Password cannot contain your email name.')
       return
     }
     setPasswordError('')
@@ -192,7 +220,15 @@ export default function CreateAccount() {
       window.dispatchEvent(new Event('auth-change'))
       navigate('/')
     } catch (err: unknown) {
-      setSubmitError(err instanceof Error ? err.message : 'Registration failed.')
+      const msg = err instanceof Error ? err.message : 'Registration failed.'
+      const looksLikePasswordError =
+        /password/i.test(msg) ||
+        /uppercase|lowercase|special|12 characters|characters\.|spaces|email name/i.test(msg)
+      if (looksLikePasswordError) {
+        setPasswordIssue(msg)
+      } else {
+        setSubmitError(msg)
+      }
     } finally {
       setSubmitting(false)
     }
@@ -251,13 +287,24 @@ export default function CreateAccount() {
         </div>
 
         <form className="create-account-form" onSubmit={handleSubmit} noValidate>
+          <div className="create-account-fields-summary" role="note">
+            <p className="create-account-fields-summary-title">What you need to fill in</p>
+            <p>
+              <strong>Required:</strong> contributor role (previous step){isOrganization ? ', organization name' : ', first and last name'}
+              , email, password and confirmation, country, relationship type, and how you heard about BrightHut.
+            </p>
+            <p>
+              <strong>Optional:</strong> phone number and region/state.
+            </p>
+          </div>
+
           {/* Name/Organization Section */}
           <fieldset className="form-section">
             <legend>{isOrganization ? 'Organization Information' : 'Personal Information'}</legend>
             
             {isOrganization ? (
               <label className="form-label">
-                Organization Name
+                Organization Name <span className="form-label-badge form-label-badge--required">Required</span>
                 <input
                   type="text"
                   name="organizationName"
@@ -271,7 +318,7 @@ export default function CreateAccount() {
             ) : (
               <>
                 <label className="form-label">
-                  First Name
+                  First Name <span className="form-label-badge form-label-badge--required">Required</span>
                   <input
                     type="text"
                     name="firstName"
@@ -283,7 +330,7 @@ export default function CreateAccount() {
                   />
                 </label>
                 <label className="form-label">
-                  Last Name
+                  Last Name <span className="form-label-badge form-label-badge--required">Required</span>
                   <input
                     type="text"
                     name="lastName"
@@ -303,7 +350,7 @@ export default function CreateAccount() {
             <legend>Contact Information</legend>
             
             <label className="form-label">
-              Email Address
+              Email Address <span className="form-label-badge form-label-badge--required">Required</span>
               <input
                 type="email"
                 name="email"
@@ -312,12 +359,27 @@ export default function CreateAccount() {
                 onChange={handleInputChange}
                 placeholder="you@example.com"
                 required
+                autoComplete="email"
               />
             </label>
+
+            <div
+              ref={passwordSectionRef}
+              className={`create-account-password-block${passwordError ? ' create-account-password-block--error' : ''}`}
+              id="create-account-password-section"
+            >
+              <p className="create-account-password-heading" id="password-section-heading">
+                Password <span className="form-label-badge form-label-badge--required">Required</span>
+              </p>
+              <p className="create-account-password-rules" id="password-requirements-desc">
+                At least 12 characters, uppercase and lowercase letters, a number, a special character, no spaces, and must
+                not include the part of your email before @.
+              </p>
             
             <label className="form-label">
               Password
               <input
+                ref={passwordInputRef}
                 type="password"
                 name="password"
                 className="form-input"
@@ -325,6 +387,9 @@ export default function CreateAccount() {
                 onChange={handleInputChange}
                 placeholder="12+ chars, upper/lower/number/symbol"
                 required
+                autoComplete="new-password"
+                aria-invalid={passwordError ? true : undefined}
+                aria-describedby={passwordError ? 'password-field-error password-requirements-desc' : 'password-requirements-desc'}
               />
             </label>
 
@@ -338,12 +403,20 @@ export default function CreateAccount() {
                 onChange={handleInputChange}
                 placeholder="Re-enter your password"
                 required
+                autoComplete="new-password"
+                aria-invalid={passwordError ? true : undefined}
+                aria-describedby={passwordError ? 'password-field-error password-requirements-desc' : 'password-requirements-desc'}
               />
             </label>
-            {passwordError && <p className="form-error">{passwordError}</p>}
+            {passwordError ? (
+              <p className="form-error" id="password-field-error" role="alert">
+                {passwordError}
+              </p>
+            ) : null}
+            </div>
 
             <label className="form-label">
-              Phone Number
+              Phone Number <span className="form-label-badge form-label-badge--optional">Optional</span>
               <input
                 type="tel"
                 name="phone"
@@ -351,6 +424,7 @@ export default function CreateAccount() {
                 value={formData.phone}
                 onChange={handleInputChange}
                 placeholder="+1 (555) 123-4567"
+                autoComplete="tel"
               />
             </label>
           </fieldset>
@@ -360,7 +434,7 @@ export default function CreateAccount() {
             <legend>Location</legend>
             
             <label className="form-label">
-              Country
+              Country <span className="form-label-badge form-label-badge--required">Required</span>
               <input
                 type="text"
                 name="country"
@@ -369,11 +443,12 @@ export default function CreateAccount() {
                 onChange={handleInputChange}
                 placeholder="Country"
                 required
+                autoComplete="country-name"
               />
             </label>
             
             <label className="form-label">
-              Region / State
+              Region / State <span className="form-label-badge form-label-badge--optional">Optional</span>
               <input
                 type="text"
                 name="region"
@@ -381,11 +456,12 @@ export default function CreateAccount() {
                 value={formData.region}
                 onChange={handleInputChange}
                 placeholder="Region or state"
+                autoComplete="address-level1"
               />
             </label>
             
             <label className="form-label">
-              Relationship Type
+              Relationship Type <span className="form-label-badge form-label-badge--required">Required</span>
               <select
                 name="relationshipType"
                 className="form-input"
@@ -406,7 +482,7 @@ export default function CreateAccount() {
             <legend>How did you hear about us?</legend>
             
             <label className="form-label">
-              Acquisition Channel
+              Acquisition Channel <span className="form-label-badge form-label-badge--required">Required</span>
               <select
                 name="acquisitionChannel"
                 className="form-input"
