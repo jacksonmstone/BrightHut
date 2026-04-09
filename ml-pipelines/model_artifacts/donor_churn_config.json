@@ -1,0 +1,43 @@
+{
+  "model_name": "Gradient Boosted Trees",
+  "features": [
+    "recency_days",
+    "frequency",
+    "log_total_amount",
+    "log_avg_amount",
+    "std_amount",
+    "avg_gap_days",
+    "tenure_days",
+    "has_inkind",
+    "num_safehouses_supported",
+    "org_tenure_days",
+    "is_international",
+    "stype_MonetaryDonor",
+    "stype_PartnerOrganization",
+    "stype_SkillsContributor",
+    "stype_SocialMediaAdvocate",
+    "stype_Volunteer"
+  ],
+  "explanatory_features": [
+    "frequency",
+    "log_total_amount",
+    "log_avg_amount",
+    "std_amount",
+    "avg_gap_days",
+    "tenure_days",
+    "has_inkind",
+    "num_safehouses_supported",
+    "org_tenure_days",
+    "is_international",
+    "stype_MonetaryDonor",
+    "stype_PartnerOrganization",
+    "stype_SkillsContributor",
+    "stype_SocialMediaAdvocate",
+    "stype_Volunteer"
+  ],
+  "operating_threshold": 0.1,
+  "churn_threshold_days": 365,
+  "reference_date": "2026-03-01",
+  "test_roc_auc": 1.0,
+  "explanatory_test_roc_auc": 0.9318181818181818
+}
