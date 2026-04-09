@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getResidents, getInterventionPlans, getIncidentReports, getResidentReadinessScore } from '../api/residents'
+import { getResidents, getInterventionPlans, getIncidentReports, getResidentReadinessScore, getResidentRegressionRisk } from '../api/residents'
 import { getDonations } from '../api/donations'
 import { getSafehouses } from '../api/safehouses'
 import { getSupporters } from '../api/supporters'
@@ -26,6 +26,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [readinessTiers, setReadinessTiers] = useState<{ high: number; moderate: number; needsSupport: number } | null>(null)
+  const [regressionRiskTiers, setRegressionRiskTiers] = useState<{ high: number; moderate: number; stable: number } | null>(null)
 
   useEffect(() => {
     Promise.all([
@@ -61,6 +62,22 @@ export default function AdminDashboard() {
             })
             if (counts.high + counts.moderate + counts.needsSupport > 0) {
               setReadinessTiers(counts)
+            }
+          })
+
+        Promise.allSettled(activeIds.map((id: number) => getResidentRegressionRisk(id)))
+          .then(results => {
+            const counts = { high: 0, moderate: 0, stable: 0 }
+            results.forEach(res => {
+              if (res.status === 'fulfilled') {
+                const tier = res.value.riskTier
+                if (tier === 'High Risk') counts.high++
+                else if (tier === 'Moderate Risk') counts.moderate++
+                else counts.stable++
+              }
+            })
+            if (counts.high + counts.moderate + counts.stable > 0) {
+              setRegressionRiskTiers(counts)
             }
           })
       })
@@ -254,6 +271,40 @@ export default function AdminDashboard() {
             <section className="ad-card">
               <div className="ad-card-header">
                 <h2>Reintegration Readiness</h2>
+                <button className="ad-link" onClick={() => navigate('/participants')}>View caseload →</button>
+              </div>
+              <p className="ad-readiness-subtitle">Active residents scored by the ML pipeline · {total} residents</p>
+              <div className="ad-readiness-tiers">
+                {tiers.map(t => (
+                  <div key={t.key} className="ad-readiness-row">
+                    <span className={`ad-readiness-dot ad-readiness-dot--${t.key}`} />
+                    <span className="ad-readiness-label">{t.label}</span>
+                    <div className="ad-readiness-bar-track">
+                      <div
+                        className={`ad-readiness-bar-fill ad-readiness-bar-fill--${t.key}`}
+                        style={{ width: total > 0 ? `${(t.count / total) * 100}%` : '0%' }}
+                      />
+                    </div>
+                    <span className="ad-readiness-count">{t.count}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )
+        })()}
+
+        {/* Regression Risk Breakdown */}
+        {regressionRiskTiers && (() => {
+          const total = regressionRiskTiers.high + regressionRiskTiers.moderate + regressionRiskTiers.stable
+          const tiers = [
+            { label: 'High Risk',      count: regressionRiskTiers.high,     key: 'high' },
+            { label: 'Moderate Risk',  count: regressionRiskTiers.moderate, key: 'moderate' },
+            { label: 'Stable',         count: regressionRiskTiers.stable,   key: 'low' },
+          ]
+          return (
+            <section className="ad-card">
+              <div className="ad-card-header">
+                <h2>Regression Risk</h2>
                 <button className="ad-link" onClick={() => navigate('/participants')}>View caseload →</button>
               </div>
               <p className="ad-readiness-subtitle">Active residents scored by the ML pipeline · {total} residents</p>
