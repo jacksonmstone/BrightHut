@@ -104,13 +104,19 @@ button {
   transform: translateY(0);
 }
 
-/* ── Universal card hover lift ──────────────────────────────────────────── */
+/* ── Universal card hover lift (match admin dashboard feel) ─────────────── */
 .about-card,
 .about-cta-card,
+.about-what-card,
 .ad-card,
+.ad-kpi,
 .an-card,
+.an-kpi,
+.dd-card,
+.dd-kpi,
 .donate-payment-card,
 .donation-card,
+.donation-amount-btn,
 .donor-card,
 .impact-card,
 .impact-hero-card,
@@ -124,16 +130,25 @@ button {
 .post-card,
 .privacy-card,
 .rd-timeline-card,
-.stat-card {
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+.role-button,
+.sp-playbook-card,
+.stat-card,
+.home-impact-preview-stats > li {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .about-card:hover,
 .about-cta-card:hover,
+.about-what-card:hover,
 .ad-card:hover,
+.ad-kpi:hover,
 .an-card:hover,
+.an-kpi:hover,
+.dd-card:hover,
+.dd-kpi:hover,
 .donate-payment-card:hover,
 .donation-card:hover,
+.donation-amount-btn:hover:not(.donation-amount-btn--active),
 .donor-card:hover,
 .impact-card:hover,
 .impact-hero-card:hover,
@@ -147,8 +162,23 @@ button {
 .post-card:hover,
 .privacy-card:hover,
 .rd-timeline-card:hover,
-.stat-card:hover {
+.role-button:hover,
+.sp-playbook-card:hover,
+.stat-card:hover,
+.home-impact-preview-stats > li:hover {
   transform: translateY(-4px) scale(1.02);
   box-shadow: var(--shadow-hover);
   border-color: var(--primary);
+}
+
+/* Tab pills (Donors / Participants portals) — lighter lift than cards */
+.tab-btn {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.tab-btn:hover:not(.active) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--primary);
+  color: var(--primary-dark);
 }

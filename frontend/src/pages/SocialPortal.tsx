@@ -175,10 +175,10 @@ export default function SocialPortal() {
       </div>
 
       <div className="social-stats">
-        <div className="stat-card"><span className="stat-value">{posts.length}</span><span className="stat-label">Total Posts</span></div>
-        <div className="stat-card"><span className="stat-value">{totalReach.toLocaleString()}</span><span className="stat-label">Total Reach</span></div>
-        <div className="stat-card"><span className="stat-value">{totalEngagement.toLocaleString()}</span><span className="stat-label">Total Engagement</span></div>
-        <div className="stat-card"><span className="stat-value">{posts.filter((p) => p.is_boosted).length}</span><span className="stat-label">Boosted Posts</span></div>
+        <div className="social-inline-stat"><span className="stat-value">{posts.length}</span><span className="stat-label">Total Posts</span></div>
+        <div className="social-inline-stat"><span className="stat-value">{totalReach.toLocaleString()}</span><span className="stat-label">Total Reach</span></div>
+        <div className="social-inline-stat"><span className="stat-value">{totalEngagement.toLocaleString()}</span><span className="stat-label">Total Engagement</span></div>
+        <div className="social-inline-stat"><span className="stat-value">{posts.filter((p) => p.is_boosted).length}</span><span className="stat-label">Boosted Posts</span></div>
       </div>
 
       {/* ── Outreach Playbook ───────────────────────────────────────────────── */}

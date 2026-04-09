@@ -383,14 +383,8 @@
   border: 1.5px solid var(--border);
   background: var(--bg-white);
   box-shadow: var(--shadow-sm);
-  transition: box-shadow 0.25s, transform 0.2s, border-color 0.25s;
   cursor: pointer;
   position: relative;
-}
-
-.portal-card:hover {
-  box-shadow: var(--shadow-hover);
-  transform: translateY(-3px);
 }
 
 /* Portal card accent colors — blue, red, gold, blue (flag colors) */

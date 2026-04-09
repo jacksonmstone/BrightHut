@@ -40,7 +40,8 @@
   border-radius: var(--radius);
 }
 
-.stat-card {
+/* Inline metrics in the header strip — not full stat cards (no global lift) */
+.social-inline-stat {
   display: flex;
   align-items: baseline;
   gap: 0.4rem;
@@ -65,6 +66,13 @@
   padding: 0.3rem 0.8rem;
   font-size: 0.82rem;
   color: var(--text-muted);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+.platform-btn:hover:not(.active) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--primary);
+  color: var(--primary-dark);
 }
 .platform-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
@@ -102,13 +110,6 @@
   text-align: left;
   padding: 0;
   cursor: pointer;
-  transition: box-shadow 0.25s, transform 0.2s, border-color 0.25s;
-}
-
-.post-card:hover {
-  box-shadow: var(--shadow-hover);
-  transform: translateY(-3px);
-  border-color: var(--primary);
 }
 
 .post-card:focus-visible {

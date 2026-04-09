@@ -231,13 +231,6 @@
   border-radius: var(--radius);
   border: 1.5px solid var(--border);
   background: var(--bg-white);
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-}
-
-.impact-card:hover {
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: var(--shadow-hover);
-  border-color: var(--primary);
 }
 
 .impact-card-num {

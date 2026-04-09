@@ -88,18 +88,15 @@
   border-radius: 12px;
   background: white;
   cursor: pointer;
-  transition: all 0.2s;
   gap: 8px;
 }
 
 .role-button:hover {
-  border-color: var(--primary, #7e14ff);
   background: var(--primary-light, #f3e8ff);
-  transform: translateY(-2px);
 }
 
 .role-button:active {
-  transform: translateY(0);
+  transform: translateY(-1px) scale(0.99);
 }
 
 .role-icon {

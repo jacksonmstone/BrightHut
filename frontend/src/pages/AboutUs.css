@@ -112,13 +112,6 @@
   border-radius: var(--radius);
   border: 1.5px solid var(--border);
   background: var(--bg);
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-}
-
-.about-what-card:hover {
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: var(--shadow-hover);
-  border-color: var(--primary);
 }
 
 .about-what-num {
