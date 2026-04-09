@@ -426,15 +426,15 @@
   padding: 0.2rem 0.6rem;
   border-radius: 999px;
 }
-.rd-intervention-badge--improving    { background: #d1fae5; color: #065f46; }
+.rd-intervention-badge--improving    { background: #ccfbf1; color: #0f766e; }
 .rd-intervention-badge--on-track     { background: #dbeafe; color: #1e40af; }
-.rd-intervention-badge--review       { background: #fef3c7; color: #92400e; }
+.rd-intervention-badge--review       { background: #ffedd5; color: #c2410c; }
 .rd-intervention-badge--insufficient { background: #f3f4f6; color: #6b7280; }
 
-/* Intervention bar fills */
-.rd-intervention-bar-fill--improving { background: #10b981; }
+/* Intervention bar fills — teal / blue / orange (distinct from readiness green/amber/red) */
+.rd-intervention-bar-fill--improving { background: #0d9488; }
 .rd-intervention-bar-fill--on-track  { background: #3b82f6; }
-.rd-intervention-bar-fill--review    { background: #f59e0b; }
+.rd-intervention-bar-fill--review    { background: #ea580c; }
 
 /* ── Driver groups ── */
 .rd-driver-group {

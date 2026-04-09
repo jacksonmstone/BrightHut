@@ -634,7 +634,7 @@ export default function ResidentDetail() {
                             <span className="rd-readiness-pct">{pct}%</span>
                             <div className="rd-score-bar-track">
                               <div
-                                className={`rd-intervention-bar-fill rd-intervention-bar-fill--${statusKey}`}
+                                className={`rd-score-bar-fill rd-intervention-bar-fill--${statusKey}`}
                                 style={{ width: `${pct}%` }}
                               />
                             </div>
