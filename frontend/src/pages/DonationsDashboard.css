@@ -187,8 +187,43 @@
   transition: width 0.4s ease;
 }
 
-.dd-bar-fill--alt   { background: #6366f1; }
-.dd-bar-fill--green { background: #10b981; }
+.dd-bar-fill--alt          { background: #6366f1; }
+.dd-bar-fill--green        { background: #10b981; }
+.dd-bar-fill--risk         { background: #ef4444; }
+.dd-bar-fill--moderate     { background: #f59e0b; }
+.dd-bar-fill--upgrade-high { background: #7c3aed; }
+.dd-bar-fill--upgrade-medium { background: #6366f1; }
+
+/* ── ML insight cards ───────────────────────────────────────────────────── */
+.dd-insight-card--churn  { border-top: 3px solid #ef4444; }
+.dd-insight-card--upgrade { border-top: 3px solid #7c3aed; }
+
+.dd-insight-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.dd-insight-header h2 { margin: 0; }
+.dd-insight-sub {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.dd-churn-badge, .dd-upgrade-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.dd-churn-badge--risk     { background: #fee2e2; color: #991b1b; }
+.dd-churn-badge--moderate { background: #fef3c7; color: #92400e; }
+.dd-upgrade-badge--high   { background: #ede9fe; color: #5b21b6; }
+.dd-upgrade-badge--medium { background: #e0e7ff; color: #3730a3; }
 
 .dd-bar-count {
   font-size: 13px;

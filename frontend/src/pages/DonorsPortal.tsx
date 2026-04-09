@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { getDonations, getDonationAllocations, getInKindDonationItems } from '../api/donations'
 import { getSupporters, getDonorChurnRisk, getDonorUpgradePotential, type DonorChurnEntry, type DonorUpgradeEntry } from '../api/supporters'
 import { insertRow, updateRow } from '../api/tables'
@@ -133,7 +133,9 @@ function getUpgradeAction(rawKey: string, tier: string): string {
 
 export default function DonorsPortal() {
   const navigate = useNavigate()
-  const [tab, setTab] = useState<Tab>('donations')
+  const location = useLocation()
+  const locationState = location.state as { tab?: Tab; filterChurn?: string; filterUpgrade?: string } | null
+  const [tab, setTab] = useState<Tab>(locationState?.tab ?? 'donations')
   const [data, setData] = useState<Record<Tab, Row[]>>({
     donations: [], supporters: [], allocations: [], inkind: [],
   })
@@ -144,8 +146,8 @@ export default function DonorsPortal() {
   const [pageSize, setPageSize] = useState(12)
   const [filterType, setFilterType] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
-  const [filterChurn, setFilterChurn] = useState('')
-  const [filterUpgrade, setFilterUpgrade] = useState('')
+  const [filterChurn, setFilterChurn] = useState(locationState?.filterChurn ?? '')
+  const [filterUpgrade, setFilterUpgrade] = useState(locationState?.filterUpgrade ?? '')
   const [churnScores, setChurnScores] = useState<Map<number, DonorChurnEntry>>(new Map())
   const [upgradeScores, setUpgradeScores] = useState<Map<number, DonorUpgradeEntry>>(new Map())
   const [formState, setFormState] = useState<FormState | null>(null)
@@ -211,21 +213,6 @@ export default function DonorsPortal() {
     return m
   }, [data.supporters])
 
-  const topChurnDonors = useMemo(() =>
-    Array.from(churnScores.values())
-      .filter(e => e.churnTier !== 'Stable')
-      .sort((a, b) => b.churnProbability - a.churnProbability)
-      .slice(0, 5)
-      .map(e => ({ ...e, name: supporterMap.get(e.supporterId) || `Donor #${e.supporterId}` }))
-  , [churnScores, supporterMap])
-
-  const topUpgradeDonors = useMemo(() =>
-    Array.from(upgradeScores.values())
-      .filter(e => e.upgradeTier !== 'LOW')
-      .sort((a, b) => b.upgradeProbability - a.upgradeProbability)
-      .slice(0, 5)
-      .map(e => ({ ...e, name: supporterMap.get(e.supporterId) || `Donor #${e.supporterId}` }))
-  , [upgradeScores, supporterMap])
 
   const handleSave = async (d: Record<string, unknown>) => {
     if (!formState) return
@@ -398,7 +385,7 @@ export default function DonorsPortal() {
       )}
 
       <div className="dp-header">
-        <button className="dp-back-btn" onClick={() => navigate('/')}>← Back</button>
+        <button className="dp-back-btn" onClick={() => navigate('/donors')}>← Back</button>
         <h1>Donors &amp; contributions</h1>
         <p className="subtitle">Donations, supporters, and partner records</p>
       </div>
@@ -409,67 +396,6 @@ export default function DonorsPortal() {
         <div className="stat-card"><span className="stat-value">{formatUsd(phpToUsd(totalMonetary))}</span><span className="stat-label">Total Monetary</span></div>
         <div className="stat-card"><span className="stat-value">{data.donations.filter((d) => d.is_recurring).length}</span><span className="stat-label">Recurring</span></div>
       </div>
-
-      {(topChurnDonors.length > 0 || topUpgradeDonors.length > 0) && (
-        <div className="dp-insight-row">
-          {topChurnDonors.length > 0 && (
-            <div className="dp-insight-card dp-insight-card--churn">
-              <div className="dp-insight-header">
-                <div>
-                  <span className="dp-insight-title">Donors at Risk of Lapsing</span>
-                  <span className="dp-insight-sub">Highest predicted churn probability</span>
-                </div>
-                <button className="dp-insight-more" onClick={() => { setTab('supporters'); setFilterChurn('At Risk'); setSearch(''); setPage(1); setFilterType(''); setFilterStatus(''); setFilterUpgrade('') }}>
-                  See more →
-                </button>
-              </div>
-              <ul className="dp-insight-list">
-                {topChurnDonors.map(d => {
-                  const tk = d.churnTier === 'At Risk' ? 'risk' : 'moderate'
-                  return (
-                    <li key={d.supporterId} className="dp-insight-item">
-                      <span className="dp-insight-name">{d.name}</span>
-                      <span className={`dp-churn-badge dp-churn-badge--${tk}`}>{d.churnTier}</span>
-                      <div className="dp-churn-bar-track dp-insight-bar">
-                        <div className={`dp-churn-bar-fill dp-churn-bar-fill--${tk}`} style={{ width: `${Math.round(d.churnProbability * 100)}%` }} />
-                      </div>
-                      <span className="dp-churn-pct">{Math.round(d.churnProbability * 100)}%</span>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
-          )}
-          {topUpgradeDonors.length > 0 && (
-            <div className="dp-insight-card dp-insight-card--upgrade">
-              <div className="dp-insight-header">
-                <div>
-                  <span className="dp-insight-title">Donors Ready to Upgrade</span>
-                  <span className="dp-insight-sub">Highest predicted upgrade probability</span>
-                </div>
-                <button className="dp-insight-more" onClick={() => { setTab('supporters'); setFilterUpgrade('HIGH'); setSearch(''); setPage(1); setFilterType(''); setFilterStatus(''); setFilterChurn('') }}>
-                  See more →
-                </button>
-              </div>
-              <ul className="dp-insight-list">
-                {topUpgradeDonors.map(d => {
-                  const tk = d.upgradeTier === 'HIGH' ? 'high' : 'medium'
-                  return (
-                    <li key={d.supporterId} className="dp-insight-item">
-                      <span className="dp-insight-name">{d.name}</span>
-                      <span className={`dp-upgrade-badge dp-upgrade-badge--${tk}`}>{d.upgradeTier}</span>
-                      <div className="dp-churn-bar-track dp-insight-bar">
-                        <div className={`dp-upgrade-bar-fill dp-upgrade-bar-fill--${tk}`} style={{ width: `${Math.round(d.upgradeProbability * 100)}%` }} />
-                      </div>
-                      <span className="dp-churn-pct">{Math.round(d.upgradeProbability * 100)}%</span>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
 
       <div className="tab-scroll">
         {TABS.map((t) => (
