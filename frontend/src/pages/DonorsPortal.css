@@ -328,3 +328,21 @@
 .dp-upgrade-bar-fill--high   { background: #7c3aed; }
 .dp-upgrade-bar-fill--medium { background: #6366f1; }
 .dp-upgrade-bar-fill--low    { background: #d1d5db; }
+
+/* ── Per-donor actionable suggestions ─────────────────────────────────────── */
+
+.dp-suggestion {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-style: italic;
+  line-height: 1.4;
+  margin-top: 0.15rem;
+}
+.dp-suggestion-icon {
+  flex-shrink: 0;
+  margin-top: 0.05rem;
+}
+.dp-suggestion--churn   { color: #92400e; }
+.dp-suggestion--upgrade { color: #4c1d95; }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getSocialMediaPosts } from '../api/social'
 import PaginationBar from '../components/PaginationBar'
@@ -16,7 +16,9 @@ export default function SocialPortal() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(12)
   const [activePost, setActivePost] = useState<Post | null>(null)
+  const [playbookOpen, setPlaybookOpen] = useState(true)
   const closeBtnRef = useRef<HTMLButtonElement | null>(null)
+  const togglePlaybook = useCallback(() => setPlaybookOpen((v) => !v), [])
 
   useEffect(() => {
     getSocialMediaPosts()
@@ -94,6 +96,116 @@ export default function SocialPortal() {
         <div className="stat-card"><span className="stat-value">{totalEngagement.toLocaleString()}</span><span className="stat-label">Total Engagement</span></div>
         <div className="stat-card"><span className="stat-value">{posts.filter((p) => p.is_boosted).length}</span><span className="stat-label">Boosted Posts</span></div>
       </div>
+
+      {/* ── Outreach Playbook ───────────────────────────────────────────────── */}
+      <section className="sp-playbook" aria-labelledby="sp-playbook-heading">
+        <button
+          type="button"
+          className="sp-playbook-toggle"
+          onClick={togglePlaybook}
+          aria-expanded={playbookOpen}
+        >
+          <span className="sp-playbook-toggle-title">
+            <span className="sp-playbook-toggle-icon">📋</span>
+            Outreach Playbook
+            <span className="sp-playbook-toggle-sub">— what the data says about what works</span>
+          </span>
+          <span className="sp-playbook-chevron" aria-hidden="true">{playbookOpen ? '▲' : '▼'}</span>
+        </button>
+
+        {playbookOpen && (
+          <div className="sp-playbook-body">
+
+            {/* Row 1: What to post */}
+            <div className="sp-playbook-group">
+              <h3 className="sp-playbook-group-title">What to Post</h3>
+              <div className="sp-playbook-cards">
+                <div className="sp-playbook-card">
+                  <span className="sp-playbook-card-icon">🎥</span>
+                  <div>
+                    <p className="sp-playbook-card-title">Lead with visual content</p>
+                    <p className="sp-playbook-card-body">Videos and images significantly outperform text-only posts. Every post should include at least one piece of media.</p>
+                  </div>
+                </div>
+                <div className="sp-playbook-card">
+                  <span className="sp-playbook-card-icon">📊</span>
+                  <div>
+                    <p className="sp-playbook-card-title">Name specific outcomes</p>
+                    <p className="sp-playbook-card-body">Posts with real numbers ("14 girls received counseling") consistently outperform generic donation asks. Make the impact concrete.</p>
+                  </div>
+                </div>
+                <div className="sp-playbook-card">
+                  <span className="sp-playbook-card-icon">🔗</span>
+                  <div>
+                    <p className="sp-playbook-card-title">Tie posts to a live campaign</p>
+                    <p className="sp-playbook-card-body">Campaign-linked posts outperform standalone organic content. Even routine updates see a lift when anchored to an active fundraiser.</p>
+                  </div>
+                </div>
+                <div className="sp-playbook-card">
+                  <span className="sp-playbook-card-icon">👆</span>
+                  <div>
+                    <p className="sp-playbook-card-title">Include one clear call to action</p>
+                    <p className="sp-playbook-card-body">Engagement peaks when posts direct followers to a single, simple action — donate, share, or sign up. Avoid stacking multiple asks.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Row 2: When to post */}
+            <div className="sp-playbook-group">
+              <h3 className="sp-playbook-group-title">When to Post</h3>
+              <div className="sp-playbook-cards">
+                <div className="sp-playbook-card">
+                  <span className="sp-playbook-card-icon">🗓️</span>
+                  <div>
+                    <p className="sp-playbook-card-title">Concentrate campaigns Nov–Dec</p>
+                    <p className="sp-playbook-card-body">Year-end and holiday campaigns generate 2–4× the revenue of off-season campaigns. If capacity allows only a few big pushes, make them year-end.</p>
+                  </div>
+                </div>
+                <div className="sp-playbook-card">
+                  <span className="sp-playbook-card-icon">⏱️</span>
+                  <div>
+                    <p className="sp-playbook-card-title">Quality beats volume</p>
+                    <p className="sp-playbook-card-body">Spacing posts out reduces audience fatigue. Average engagement per post matters more than total post count — fewer, better posts outperform a high-frequency feed.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Row 3: Campaign strategy */}
+            <div className="sp-playbook-group">
+              <h3 className="sp-playbook-group-title">Campaign Strategy</h3>
+              <div className="sp-playbook-cards">
+                <div className="sp-playbook-card">
+                  <span className="sp-playbook-card-icon">🤝</span>
+                  <div>
+                    <p className="sp-playbook-card-title">Announce matching gifts early</p>
+                    <p className="sp-playbook-card-body">Even a small matching commitment from a major donor significantly boosts campaign revenue. Announce it at launch and repeat it throughout to sustain urgency.</p>
+                  </div>
+                </div>
+                <div className="sp-playbook-card">
+                  <span className="sp-playbook-card-icon">🎯</span>
+                  <div>
+                    <p className="sp-playbook-card-title">Focus on your strongest platform</p>
+                    <p className="sp-playbook-card-body">Spreading effort thin across all platforms underperforms. Identify the one platform where your audience engages most and make it the primary channel for campaigns.</p>
+                  </div>
+                </div>
+                <div className="sp-playbook-card">
+                  <span className="sp-playbook-card-icon">📣</span>
+                  <div>
+                    <p className="sp-playbook-card-title">Impact messaging converts best</p>
+                    <p className="sp-playbook-card-body">Campaign posts that describe specific program outcomes ("help fund one more safehouse") outperform broad awareness appeals. Connect every ask to a tangible result donors can visualize.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <p className="sp-playbook-disclaimer">
+              Insights derived from campaign-effectiveness and social-media-engagement analytics on historical post and donation data. Use as directional guidance — results will vary with audience growth and platform algorithm changes.
+            </p>
+          </div>
+        )}
+      </section>
 
       <div className="social-controls">
         <div className="platform-filters">

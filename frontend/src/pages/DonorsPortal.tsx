@@ -65,6 +65,72 @@ function donorRowKey(tab: Tab, r: Row): string {
   }
 }
 
+function getChurnAction(rawKey: string, tier: string): string {
+  if (tier === 'Stable') return ''
+  switch (rawKey) {
+    case 'recency_days':
+      return tier === 'At Risk'
+        ? 'Send a personal re-engagement note referencing their last gift and its specific impact.'
+        : 'Schedule a touchpoint — a brief impact update email can re-establish connection.'
+    case 'frequency':
+      return 'Low giving history — invite them into a recurring monthly giving program to build habit.'
+    case 'avg_gap_days':
+      return tier === 'At Risk'
+        ? 'Long gaps between gifts — offer a simple automatic monthly pledge option.'
+        : 'Remind them of impact between gifts with a mid-year update.'
+    case 'is_international':
+      return 'International donors lapse at higher rates — share a video impact story of the safehouses they support.'
+    case 'org_tenure_days':
+      return 'Long relationship showing signs of fatigue — a personal thank-you from leadership can re-energize their commitment.'
+    default:
+      return tier === 'At Risk'
+        ? 'Reach out personally — share a specific resident success story and express gratitude for their support.'
+        : 'Send a mid-cycle impact update to keep them engaged.'
+  }
+}
+
+function getUpgradeAction(rawKey: string, tier: string): string {
+  if (tier === 'LOW') return ''
+  switch (rawKey) {
+    case 'pct_increases':
+      return tier === 'HIGH'
+        ? 'Consistent pattern of increasing gifts — make a direct, specific upgrade ask now.'
+        : 'Growing giving pattern — nurture with impact updates, then ask for a step up.'
+    case 'giving_slope':
+      return tier === 'HIGH'
+        ? 'Gift amounts are trending upward — suggest the next giving level directly.'
+        : 'Positive trend — introduce a named giving opportunity at the next level.'
+    case 'frequency':
+      return tier === 'HIGH'
+        ? 'Highly active donor — invite to a major gifts program or leadership giving circle.'
+        : 'Regular giver — acknowledge their loyalty before making a step-up ask.'
+    case 'freq_accel':
+      return tier === 'HIGH'
+        ? 'Giving frequency is accelerating — capitalize with a matching gift campaign invitation.'
+        : 'Increasing engagement — a campaign-linked upgrade ask is well-timed.'
+    case 'tenure_days':
+      return tier === 'HIGH'
+        ? 'Long-term loyal supporter — frame the upgrade as recognition of their sustained commitment.'
+        : 'Established relationship — a personal thank-you with a suggested increase is appropriate.'
+    case 'has_inkind':
+      return tier === 'HIGH'
+        ? 'Deep multi-modal commitment — personally invite to a named or leadership giving circle.'
+        : 'Shows broad support — introduce a portfolio giving option.'
+    case 'num_safehouses_supported':
+      return tier === 'HIGH'
+        ? 'Supports multiple safehouses — frame upgrade as expanding to fund one more home.'
+        : 'Multi-house donor — introduce the idea of broader program sponsorship.'
+    case 'log_avg_amount':
+      return tier === 'HIGH'
+        ? 'Already giving at a meaningful level — ask for a specific percentage increase.'
+        : 'Mid-level giver — suggest a modest step-up framed around a concrete impact milestone.'
+    default:
+      return tier === 'HIGH'
+        ? 'Strong upgrade signals — make a direct, personalized ask now.'
+        : 'Building momentum — nurture with impact updates before making an upgrade ask.'
+  }
+}
+
 export default function DonorsPortal() {
   const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('donations')
@@ -240,6 +306,15 @@ export default function DonorsPortal() {
                   <span>{churn.topRiskDriver.feature}</span>
                 </div>
               )}
+              {churn && (() => {
+                const suggestion = getChurnAction(churn.topRiskDriver?.rawKey ?? '', churn.churnTier)
+                return suggestion ? (
+                  <div className="dp-suggestion dp-suggestion--churn">
+                    <span className="dp-suggestion-icon">→</span>
+                    <span>{suggestion}</span>
+                  </div>
+                ) : null
+              })()}
               {upgrade && (
                 <div className="dp-upgrade-row">
                   <span className={`dp-upgrade-badge dp-upgrade-badge--${upgradeTierKey}`}>{upgrade.upgradeTier} upgrade</span>
@@ -255,6 +330,15 @@ export default function DonorsPortal() {
                   <span>{upgrade.topUpgradeSignal.feature}</span>
                 </div>
               )}
+              {upgrade && (() => {
+                const suggestion = getUpgradeAction(upgrade.topUpgradeSignal?.rawKey ?? '', upgrade.upgradeTier)
+                return suggestion ? (
+                  <div className="dp-suggestion dp-suggestion--upgrade">
+                    <span className="dp-suggestion-icon">→</span>
+                    <span>{suggestion}</span>
+                  </div>
+                ) : null
+              })()}
             </div>
           </div>
         )
