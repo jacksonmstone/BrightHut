@@ -282,6 +282,39 @@
   color: #fff;
 }
 
+.mc-impact-body {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
+.mc-impact-body .mc-allocations,
+.mc-impact-body .mc-empty-allocations {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.mc-impact-photo {
+  flex: 0 0 260px;
+  width: 260px;
+  height: 320px;
+  object-fit: cover;
+  object-position: center top;
+  border-radius: 50% 50% 45% 55% / 40% 40% 60% 60%;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+}
+
+@media (max-width: 700px) {
+  .mc-impact-body {
+    flex-direction: column;
+  }
+  .mc-impact-photo {
+    flex: none;
+    width: 200px;
+    height: 240px;
+  }
+}
+
 .mc-impact-header {
   margin-bottom: 24px;
 }

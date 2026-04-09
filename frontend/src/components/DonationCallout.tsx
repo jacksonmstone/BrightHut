@@ -3,11 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { getDonations } from '../api/donations'
 import {
   computeMonthlyGoalUsd,
-  currentYearMonth,
   formatUsd,
   phpToUsd,
   progressPercent,
-  sumMonetaryPhpForMonth,
+  sumMonetaryPhpForYear,
   type DonationRow,
 } from './donationProgress'
 import './DonationCallout.css'
@@ -38,16 +37,11 @@ export default function DonationCallout() {
     return () => { cancelled = true }
   }, [])
 
-  const yearMonth = useMemo(() => currentYearMonth(), [])
-  const raisedPhpThisMonth = useMemo(() => sumMonetaryPhpForMonth(rows, yearMonth), [rows, yearMonth])
-  const raisedUsdThisMonth = useMemo(() => phpToUsd(raisedPhpThisMonth), [raisedPhpThisMonth])
-  const monthlyGoalUsd = useMemo(() => computeMonthlyGoalUsd(rows), [rows])
-  const percent = useMemo(() => progressPercent(raisedUsdThisMonth, monthlyGoalUsd), [raisedUsdThisMonth, monthlyGoalUsd])
-
-  const monthLabel = useMemo(() => {
-    const [y, m] = yearMonth.split('-').map(Number)
-    return new Date(y, m - 1, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' })
-  }, [yearMonth])
+  const currentYear = new Date().getFullYear()
+  const raisedPhpThisYear = useMemo(() => sumMonetaryPhpForYear(rows, currentYear), [rows, currentYear])
+  const raisedUsdThisYear = useMemo(() => phpToUsd(raisedPhpThisYear), [raisedPhpThisYear])
+  const yearlyGoalUsd = useMemo(() => computeMonthlyGoalUsd(rows) * 12, [rows])
+  const percent = useMemo(() => progressPercent(raisedUsdThisYear, yearlyGoalUsd), [raisedUsdThisYear, yearlyGoalUsd])
 
   const customAmount = parseFloat(customRaw.replace(/,/g, ''))
   const effectiveAmount = selected ?? (!Number.isNaN(customAmount) && customAmount > 0 ? customAmount : null)
@@ -76,10 +70,10 @@ export default function DonationCallout() {
             {loadError && <p className="donation-progress-error">{loadError}</p>}
             <div className="donation-progress-top">
               <span className="donation-progress-raised">
-                {loading ? '...' : formatUsd(raisedUsdThisMonth)}
+                {loading ? '...' : formatUsd(raisedUsdThisYear)}
               </span>
               <span className="donation-progress-label">
-                {loading ? '--' : String(percent) + '%'} of {loading ? '...' : formatUsd(monthlyGoalUsd)} goal &mdash; {monthLabel}
+                {loading ? '--' : String(percent) + '%'} of {loading ? '...' : formatUsd(yearlyGoalUsd)} {currentYear} annual goal
               </span>
             </div>
             <div

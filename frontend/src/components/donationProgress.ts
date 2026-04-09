@@ -44,6 +44,19 @@ export function sumMonetaryPhpForMonth(rows: DonationRow[], yearMonth: string): 
   return sum
 }
 
+export function sumMonetaryPhpForYear(rows: DonationRow[], year: number): number {
+  const prefix = String(year)
+  let sum = 0
+  for (const r of rows) {
+    if (String(r.donation_type ?? '') !== 'Monetary') continue
+    const date = String(r.donation_date ?? '')
+    if (!date.startsWith(prefix)) continue
+    const amt = Number(r.amount ?? 0)
+    if (Number.isFinite(amt) && amt > 0) sum += amt
+  }
+  return sum
+}
+
 /**
  * Suggested monthly goal (USD): stretch vs average historical monthly monetary total.
  * Falls back when there is no data.

@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getPublicImpactSnapshots, getSafehouseMonthlyMetrics } from '../api/impact'
+import { getSafehouseMonthlyMetrics } from '../api/impact'
 import { getDonations } from '../api/donations'
 import { phpToUsd, formatUsd } from '../components/donationProgress'
+import handsTogether from '../assets/hands-together.png'
 import './Impact.css'
 
-type Snapshot = Record<string, unknown>
 type MetricRow = Record<string, unknown>
 
 function toNumber(v: unknown) {
@@ -16,7 +16,6 @@ function toNumber(v: unknown) {
 
 export default function Impact() {
   const navigate = useNavigate()
-  const [snapshots, setSnapshots] = useState<Snapshot[]>([])
   const [metrics, setMetrics] = useState<MetricRow[]>([])
   const [totalRaisedPhp, setTotalRaisedPhp] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -25,9 +24,8 @@ export default function Impact() {
   useEffect(() => {
     setLoading(true)
     setError(null)
-    Promise.all([getPublicImpactSnapshots(), getSafehouseMonthlyMetrics(), getDonations()])
-      .then(([s, m, d]) => {
-        setSnapshots(s ?? [])
+    Promise.all([getSafehouseMonthlyMetrics(), getDonations()])
+      .then(([m, d]) => {
         setMetrics(m ?? [])
         const total = (d ?? [])
           .filter((r) => r.donation_type === 'Monetary')
@@ -38,11 +36,6 @@ export default function Impact() {
       .finally(() => setLoading(false))
   }, [])
 
-  const latestSnapshot = useMemo(() => {
-    return [...snapshots]
-      .sort((a, b) => String(b.snapshot_date ?? '').localeCompare(String(a.snapshot_date ?? '')))
-      [0] ?? null
-  }, [snapshots])
 
   const latestMonth = useMemo(() => {
     const ms = metrics
@@ -114,7 +107,9 @@ export default function Impact() {
             healing, and new beginnings — no individual details, just honest outcomes.
           </p>
         </div>
-        <div className="impact-hero-blob" aria-hidden="true" />
+        <div className="impact-hero-visual">
+          <img src={handsTogether} alt="Community members with hands together" className="impact-hero-img" />
+        </div>
       </section>
 
       {loading && <p className="impact-state">Loading impact data…</p>}
@@ -186,20 +181,6 @@ export default function Impact() {
             </div>
           </section>
 
-          {/* ── Latest snapshot ── */}
-          {latestSnapshot && (
-            <section className="impact-snapshot">
-              <div className="impact-snapshot-inner">
-                <span className="impact-tag impact-tag--light">Latest snapshot</span>
-                <h2>{String(latestSnapshot.headline ?? 'BrightHut impact')}</h2>
-                <p>{String(latestSnapshot.summary_text ?? 'Every month, we report outcomes using anonymized aggregates to protect residents.')}</p>
-                <div className="impact-snapshot-meta">
-                  <span className="impact-meta-pill">Snapshot: {String(latestSnapshot.snapshot_date ?? '—').slice(0, 10)}</span>
-                  <span className="impact-meta-pill">Reporting month: {latestMonth ? latestMonth.slice(0, 7) : '—'}</span>
-                </div>
-              </div>
-            </section>
-          )}
 
           {/* ── CTA ── */}
           <section className="impact-cta">

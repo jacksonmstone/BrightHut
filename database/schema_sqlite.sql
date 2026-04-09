@@ -390,6 +390,11 @@ CREATE TABLE IF NOT EXISTS users (
   relationship_type TEXT,
   acquisition_channel TEXT,
   supporter_type TEXT,
+  auth_provider TEXT NOT NULL DEFAULT 'local',
+  google_sub TEXT,
+  google_profile_completed INTEGER NOT NULL DEFAULT 0,
+  two_factor_secret TEXT,
+  two_factor_enabled INTEGER NOT NULL DEFAULT 0,
   created_at TEXT DEFAULT (datetime('now')),
   is_active INTEGER NOT NULL DEFAULT 1
 );

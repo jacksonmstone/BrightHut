@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import peaceCircle from '../assets/peace-circle.png'
 import './AboutUs.css'
 
 const PILLARS = [
@@ -55,7 +56,10 @@ export default function AboutUs() {
             <button className="btn-secondary" onClick={() => navigate('/create-account')}>Get involved</button>
           </div>
         </div>
-        <div className="about-hero-blob" aria-hidden="true" />
+        <div className="about-hero-visual">
+          <div className="about-hero-blob" aria-hidden="true" />
+          <img src={peaceCircle} alt="Residents forming a peace circle" className="about-hero-img" />
+        </div>
       </section>
 
       {/* ── What we do ── */}

@@ -17,6 +17,36 @@
 .social-header h1 { font-size: 1.8rem; }
 .subtitle { color: var(--text-muted); font-size: 0.95rem; margin-top: 0.25rem; }
 
+.social-purpose {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.25rem 1.35rem;
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.social-purpose-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  margin: 0 0 0.65rem;
+  font-family: ui-serif, Georgia, 'Times New Roman', Times, serif;
+}
+
+.social-purpose-body {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: var(--text);
+}
+
+.social-purpose-body strong {
+  color: var(--primary-dark);
+  font-weight: 600;
+}
+
 .back-btn {
   position: absolute;
   top: 2rem;
@@ -90,9 +120,13 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1rem;
+  /* Cards height to their own content; avoids tall empty bands when one post in the row is long */
+  align-items: start;
 }
 
 .post-card {
+  width: 100%;
+  box-sizing: border-box;
   background: var(--bg-white);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -148,16 +182,25 @@
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+  min-width: 0;
 }
 
 .post-caption {
+  margin: 0;
   font-size: 0.88rem;
   color: var(--text);
   line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
+  flex: 0 1 auto;
+  min-height: 0;
   overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  /* Cap height to at most three lines so short captions do not reserve a phantom third line */
+  max-height: calc(1.5em * 3);
 }
 
 .post-meta { display: flex; gap: 0.4rem; flex-wrap: wrap; }

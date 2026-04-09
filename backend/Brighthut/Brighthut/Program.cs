@@ -5,37 +5,47 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Load JWT key: env var takes priority over appsettings.json.
+// In Azure App Service set JWT__KEY under Configuration > Application settings.
+// In local dev, set JWT__KEY in your environment or launchSettings.json.
 var jwtKey = Environment.GetEnvironmentVariable("JWT__KEY")
     ?? builder.Configuration["Jwt:Key"];
-var jwtKeyLooksPlaceholder =
-    string.IsNullOrWhiteSpace(jwtKey)
-    || jwtKey.Contains("ChangeInProd", StringComparison.OrdinalIgnoreCase)
-    || jwtKey.Contains("REPLACE_ME", StringComparison.OrdinalIgnoreCase);
-var authEnabled = false;
 
-if (jwtKeyLooksPlaceholder)
+var jwtKeyIsPlaceholder =
+    string.IsNullOrWhiteSpace(jwtKey)
+    || jwtKey.StartsWith("REPLACE_ME", StringComparison.OrdinalIgnoreCase)
+    || jwtKey.Contains("CHANGE_ME", StringComparison.OrdinalIgnoreCase);
+
+if (jwtKeyIsPlaceholder)
 {
-    // Use an embedded dev key whenever JWT is unset or still a placeholder so the API can start
-    // locally, on Azure App Service, and in CI without extra secrets. Set JWT__KEY for real deployments.
-    jwtKey = "DEV_ONLY__REPLACE_WITH_STRONG_KEY_IN_PROD__0123456789";
-    builder.Configuration["Jwt:Key"] = jwtKey;
-    authEnabled = true;
     if (!builder.Environment.IsDevelopment())
     {
-        Console.WriteLine(
-            "BrightHut API: JWT__KEY is not set or is still a placeholder; using embedded development key. Set JWT__KEY in Azure App Service configuration for production.");
+        // Fail fast in production — never run with a placeholder key.
+        throw new InvalidOperationException(
+            "JWT__KEY is not configured. Set it in Azure App Service > Configuration > Application settings.");
     }
-}
-else
-{
-    builder.Configuration["Jwt:Key"] = jwtKey;
-    authEnabled = true;
+
+    // Development only: use a local-only dev key so the API starts without extra setup.
+    // This key is NOT secure and must never be used in production.
+    jwtKey = "DEV_ONLY__NOT_FOR_PRODUCTION__brighthut_local_dev_key_0000";
+    Console.WriteLine("BrightHut API [DEV]: Using embedded dev JWT key. Set JWT__KEY env var for any real deployment.");
 }
 
+builder.Configuration["Jwt:Key"] = jwtKey;
+var authEnabled = true;
+
+builder.Services.AddSingleton<DbConnectionFactory>();
 builder.Services.AddSingleton<SqliteDataService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddHsts(options =>
+{
+    // 1 year HSTS policy for production traffic.
+    options.MaxAge = TimeSpan.FromDays(365);
+    options.IncludeSubDomains = true;
+    options.Preload = true;
+});
 
 if (authEnabled)
 {
@@ -77,6 +87,7 @@ if (app.Environment.IsDevelopment())
 
 if (!app.Environment.IsDevelopment())
 {
+    app.UseHsts();
     app.UseHttpsRedirection();
 }
 if (allowedOrigins.Length > 0)

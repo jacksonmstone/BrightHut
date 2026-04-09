@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { getSupporters } from '../api/supporters'
 import { getDonations, getDonationAllocations } from '../api/donations'
 import { phpToUsd, formatUsd } from '../components/donationProgress'
+import yogaImg from '../assets/yoga.png'
 import './MyContributions.css'
 
 type Row = Record<string, unknown>
@@ -140,13 +141,13 @@ export default function MyContributions() {
             Here is exactly how BrightHut has put your <strong>{fmt(totalGiven)}</strong> to work across our program areas.
           </p>
         </div>
-        {allocationsByArea.length === 0 ? (
-          <div className="mc-empty-allocations">
-            <span className="mc-empty-icon">🌱</span>
-            <p>No allocations on record yet. Staff allocate funds after each donation cycle — check back soon.</p>
-          </div>
-        ) : (
-          <>
+        <div className="mc-impact-body">
+          {allocationsByArea.length === 0 ? (
+            <div className="mc-empty-allocations">
+              <span className="mc-empty-icon">🌱</span>
+              <p>No allocations on record yet. Staff allocate funds after each donation cycle — check back soon.</p>
+            </div>
+          ) : (
             <div className="mc-allocations">
               {allocationsByArea.map(([area, amount]) => {
                 const totalAllocated = allocationsByArea.reduce((s, [, v]) => s + v, 0)
@@ -175,8 +176,13 @@ export default function MyContributions() {
                 )
               })}
             </div>
-          </>
-        )}
+          )}
+          <img
+            src={yogaImg}
+            alt="Residents doing yoga outdoors"
+            className="mc-impact-photo"
+          />
+        </div>
       </section>
 
       <div className="mc-actions-row">

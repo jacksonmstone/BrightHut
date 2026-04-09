@@ -1,0 +1,118 @@
+.pagination-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.pagination-bar__summary {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+.pagination-bar__summary strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.pagination-bar__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pagination-bar__size {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.pagination-bar__size-label {
+  white-space: nowrap;
+}
+
+.pagination-bar__size select {
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-white);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-family: var(--sans, system-ui, sans-serif);
+}
+
+.pagination-bar__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.pagination-bar__btn,
+.pagination-bar__page {
+  min-width: 2.25rem;
+  height: 2.25rem;
+  padding: 0 0.45rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-white);
+  color: var(--text);
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.pagination-bar__btn:hover:not(:disabled),
+.pagination-bar__page:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+
+.pagination-bar__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-bar__page--active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  font-weight: 700;
+}
+
+.pagination-bar__page--active:hover {
+  color: #fff;
+  border-color: var(--primary-dark);
+  background: var(--primary-dark);
+}
+
+.pagination-bar__ellipsis {
+  padding: 0 0.2rem;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+@media (max-width: 600px) {
+  .pagination-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pagination-bar__controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pagination-bar__buttons {
+    justify-content: center;
+  }
+}
