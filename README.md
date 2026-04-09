@@ -40,16 +40,16 @@ If `JWT__KEY` is missing in production the API will **refuse to start** with a c
 
 | Variable | Description |
 |---|---|
-| `SEED_ADMIN_PASSWORD` | Password for `admin@brighthut.org` |
+| `SEED_STAFF_PASSWORD` | Password for `staff@brighthut.org` |
 | `SEED_DONOR_PASSWORD` | Password for `donor@brighthut.org` |
 
 ```bash
-export SEED_ADMIN_PASSWORD="<strong password>"
+export SEED_STAFF_PASSWORD="<strong password>"
 export SEED_DONOR_PASSWORD="<strong password>"
 python database/seed_users.py
 ```
 
-The script will exit with a clear error if any required variable is missing. Passwords are never stored in source code — only bcrypt hashes are written to the database.
+The script will exit with a clear error if either variable is missing. Passwords are never stored in source code — only bcrypt hashes are written to the database.
 
 ---
 

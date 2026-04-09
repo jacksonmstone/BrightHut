@@ -8182,6 +8182,6 @@ SET IDENTITY_INSERT public_impact_snapshots OFF;
 
 -- users (2 rows)
 SET IDENTITY_INSERT users ON;
-INSERT INTO users (user_id, email, password_hash, role, first_name, last_name, organization_name, phone, country, region, relationship_type, acquisition_channel, supporter_type, created_at, is_active) VALUES (1, N'admin@brighthut.org', N'$2b$12$hhM7kXtAEbD8nIED94lw.e4HZkssnB5gTD27FT52uWZhn.kgPqk1m', N'admin', N'Staff', N'Admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, N'2026-04-07 17:50:14', 1);
+INSERT INTO users (user_id, email, password_hash, role, first_name, last_name, organization_name, phone, country, region, relationship_type, acquisition_channel, supporter_type, created_at, is_active) VALUES (1, N'staff@brighthut.org', N'$2b$12$hhM7kXtAEbD8nIED94lw.e4HZkssnB5gTD27FT52uWZhn.kgPqk1m', N'staff', N'Staff', N'Admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, N'2026-04-07 17:50:14', 1);
 INSERT INTO users (user_id, email, password_hash, role, first_name, last_name, organization_name, phone, country, region, relationship_type, acquisition_channel, supporter_type, created_at, is_active) VALUES (2, N'donor@brighthut.org', N'$2b$12$kG.jDQ1mx92yZaBInkshfuIbm.Fbtii52Rbe0/8HBnFBbDpaJoT.6', N'donor', N'Test', N'Donor', NULL, NULL, NULL, NULL, NULL, NULL, NULL, N'2026-04-07 17:50:14', 1);
 SET IDENTITY_INSERT users OFF;

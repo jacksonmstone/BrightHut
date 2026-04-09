@@ -1,4 +1,4 @@
-import { apiDelete, apiPost, apiPut } from './client'
+import { apiPost, apiPut } from './client'
 
 export function insertRow(tableName: string, data: Record<string, unknown>): Promise<{ id: number }> {
   return apiPost(`/api/tables/${tableName}`, data)
@@ -6,10 +6,6 @@ export function insertRow(tableName: string, data: Record<string, unknown>): Pro
 
 export function updateRow(tableName: string, id: number, data: Record<string, unknown>): Promise<void> {
   return apiPut(`/api/tables/${tableName}/${id}`, data)
-}
-
-export function deleteRow(tableName: string, id: number): Promise<void> {
-  return apiDelete(`/api/tables/${tableName}/${id}?confirm=true`)
 }
 
 export function submitDonation(amountUsd: number, note?: string): Promise<{ donationId: number; supporterId: number; amountPhp: number }> {

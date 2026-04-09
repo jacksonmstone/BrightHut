@@ -139,7 +139,7 @@ public class TablesController : ControllerBase
     }
 
     [HttpDelete("tables/{tableName}/{id:long}")]
-    [Authorize(Roles = "admin")]
+    [Authorize(Roles = "admin,staff")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -151,43 +151,11 @@ public class TablesController : ControllerBase
         if (!_db.IsTableAllowed(tableName))
             return NotFound(new { error = "Unknown table name." });
 
-        // Business rule: supporters are deactivated instead of physically deleted.
-        if (tableName.Equals("supporters", StringComparison.OrdinalIgnoreCase))
-        {
-            var deactivated = _db.Update("supporters", id, new Dictionary<string, object?>
-            {
-                ["status"] = "Inactive",
-            });
+        var ok = _db.Delete(tableName, id);
+        if (!ok)
+            return NotFound(new { error = "Record not found." });
 
-            if (!deactivated)
-                return NotFound(new { error = "Record not found." });
-
-            return Ok(new
-            {
-                id,
-                deleted = false,
-                deactivated = true,
-                message = "Supporter was deactivated instead of deleted.",
-            });
-        }
-
-        try
-        {
-            var ok = _db.Delete(tableName, id);
-            if (!ok)
-                return NotFound(new { error = "Record not found." });
-
-            return Ok(new { id, deleted = true });
-        }
-        catch (Exception ex) when (ex.Message.Contains("FOREIGN KEY constraint failed", StringComparison.OrdinalIgnoreCase))
-        {
-            return Conflict(new
-            {
-                error = "Cannot delete this record because it is referenced by related data. Delete dependent records first.",
-                table = tableName,
-                id,
-            });
-        }
+        return Ok(new { id, deleted = true });
     }
 
     private static object? ConvertJsonElement(JsonElement el) => el.ValueKind switch

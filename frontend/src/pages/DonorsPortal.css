@@ -197,32 +197,6 @@
 }
 .dp-edit-btn:hover { text-decoration: underline; }
 
-.dp-card-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-left: auto;
-}
-
-.dp-danger-btn {
-  background: none;
-  border: none;
-  font-size: 12px;
-  color: #b42318;
-  cursor: pointer;
-  padding: 0;
-}
-
-.dp-danger-btn:hover {
-  text-decoration: underline;
-}
-
-.dp-danger-btn:disabled {
-  color: var(--text-muted);
-  cursor: not-allowed;
-  text-decoration: none;
-}
-
 .dp-add-btn {
   background: var(--primary);
   color: #fff;
