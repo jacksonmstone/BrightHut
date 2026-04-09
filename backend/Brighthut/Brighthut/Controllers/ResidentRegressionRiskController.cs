@@ -224,8 +224,14 @@ public class ResidentRegressionRiskController : ControllerBase
 
         var score = Sigmoid(linear);
 
-        var tier = score >= 0.10 ? "High Risk"
-                 : score >= 0.05 ? "Moderate Risk"
+        // Tier thresholds are calibrated to the actual score distribution:
+        //   mean resident (3 incidents, avg support)  ≈ 0.43 → Moderate Risk
+        //   well-supported, no-incident resident      ≈ 0.10 → Stable
+        //   resident with multiple recent incidents   ≈ 0.70+ → High Risk
+        // The 0.10 flag threshold is retained for clinical flagging (max-F2 from notebook),
+        // but the three display tiers use wider bands to produce a meaningful distribution.
+        var tier = score >= 0.55 ? "High Risk"
+                 : score >= 0.30 ? "Moderate Risk"
                  : "Stable";
 
         // ── Driver selection: top 2 risk-increasing features ─────────────────

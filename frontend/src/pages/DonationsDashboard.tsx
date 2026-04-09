@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getDonations } from '../api/donations'
-import { getSupporters } from '../api/supporters'
+import { getSupporters, getDonorChurnRisk, getDonorUpgradePotential, type DonorChurnEntry, type DonorUpgradeEntry } from '../api/supporters'
 import { phpToUsd, formatUsd } from '../components/donationProgress'
 import './DonationsDashboard.css'
 
@@ -18,12 +18,30 @@ export default function DonationsDashboard() {
   const [supporters, setSupporters] = useState<Row[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [churnScores, setChurnScores] = useState<Map<number, DonorChurnEntry>>(new Map())
+  const [upgradeScores, setUpgradeScores] = useState<Map<number, DonorUpgradeEntry>>(new Map())
 
   useEffect(() => {
     Promise.all([getDonations(), getSupporters()])
       .then(([d, s]) => { setDonations(d); setSupporters(s) })
       .catch(() => setError('Failed to load donation data.'))
       .finally(() => setLoading(false))
+
+    getDonorChurnRisk()
+      .then(result => {
+        const map = new Map<number, DonorChurnEntry>()
+        for (const d of result.donors) map.set(d.supporterId, d)
+        setChurnScores(map)
+      })
+      .catch(() => {})
+
+    getDonorUpgradePotential()
+      .then(result => {
+        const map = new Map<number, DonorUpgradeEntry>()
+        for (const d of result.donors) map.set(d.supporterId, d)
+        setUpgradeScores(map)
+      })
+      .catch(() => {})
   }, [])
 
   const monetary = useMemo(() => donations.filter(d => d.donation_type === 'Monetary'), [donations])
@@ -90,6 +108,22 @@ export default function DonationsDashboard() {
 
   const maxTypeCount = Math.max(1, ...byType.map(([, v]) => v))
   const maxChannelCount = Math.max(1, ...byChannel.map(([, v]) => v))
+
+  const topChurnDonors = useMemo(() =>
+    Array.from(churnScores.values())
+      .filter(e => e.churnTier !== 'Stable')
+      .sort((a, b) => b.churnProbability - a.churnProbability)
+      .slice(0, 5)
+      .map(e => ({ ...e, name: supporterMap.get(e.supporterId) || `Donor #${e.supporterId}` }))
+  , [churnScores, supporterMap])
+
+  const topUpgradeDonors = useMemo(() =>
+    Array.from(upgradeScores.values())
+      .filter(e => e.upgradeTier !== 'LOW')
+      .sort((a, b) => b.upgradeProbability - a.upgradeProbability)
+      .slice(0, 5)
+      .map(e => ({ ...e, name: supporterMap.get(e.supporterId) || `Donor #${e.supporterId}` }))
+  , [upgradeScores, supporterMap])
 
   if (loading) return <main className="dd-page"><p className="dd-state">Loading donation data…</p></main>
   if (error) return <main className="dd-page"><p className="dd-state dd-state--error">{error}</p></main>
@@ -184,6 +218,68 @@ export default function DonationsDashboard() {
             ))}
           </div>
         </section>
+
+        {/* ML Insight Cards */}
+        {(topChurnDonors.length > 0 || topUpgradeDonors.length > 0) && (
+          <>
+            {topChurnDonors.length > 0 && (
+              <section className="dd-card dd-insight-card dd-insight-card--churn">
+                <div className="dd-insight-header">
+                  <div>
+                    <h2>Donors at Risk of Lapsing</h2>
+                    <p className="dd-insight-sub">Highest predicted churn probability</p>
+                  </div>
+                  <button className="dd-link" onClick={() => navigate('/donors/manage', { state: { tab: 'supporters', filterChurn: 'At Risk' } })}>
+                    See more →
+                  </button>
+                </div>
+                <div className="dd-bars">
+                  {topChurnDonors.map(d => {
+                    const tk = d.churnTier === 'At Risk' ? 'risk' : 'moderate'
+                    return (
+                      <div key={d.supporterId} className="dd-bar-row">
+                        <span className="dd-bar-label">{d.name}</span>
+                        <span className={`dd-churn-badge dd-churn-badge--${tk}`}>{d.churnTier}</span>
+                        <div className="dd-bar-track">
+                          <div className={`dd-bar-fill dd-bar-fill--${tk}`} style={{ width: `${Math.round(d.churnProbability * 100)}%` }} />
+                        </div>
+                        <span className="dd-bar-count">{Math.round(d.churnProbability * 100)}%</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </section>
+            )}
+            {topUpgradeDonors.length > 0 && (
+              <section className="dd-card dd-insight-card dd-insight-card--upgrade">
+                <div className="dd-insight-header">
+                  <div>
+                    <h2>Donors Ready to Upgrade</h2>
+                    <p className="dd-insight-sub">Highest predicted upgrade probability</p>
+                  </div>
+                  <button className="dd-link" onClick={() => navigate('/donors/manage', { state: { tab: 'supporters', filterUpgrade: 'HIGH' } })}>
+                    See more →
+                  </button>
+                </div>
+                <div className="dd-bars">
+                  {topUpgradeDonors.map(d => {
+                    const tk = d.upgradeTier === 'HIGH' ? 'high' : 'medium'
+                    return (
+                      <div key={d.supporterId} className="dd-bar-row">
+                        <span className="dd-bar-label">{d.name}</span>
+                        <span className={`dd-upgrade-badge dd-upgrade-badge--${tk}`}>{d.upgradeTier}</span>
+                        <div className="dd-bar-track">
+                          <div className={`dd-bar-fill dd-bar-fill--upgrade-${tk}`} style={{ width: `${Math.round(d.upgradeProbability * 100)}%` }} />
+                        </div>
+                        <span className="dd-bar-count">{Math.round(d.upgradeProbability * 100)}%</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </section>
+            )}
+          </>
+        )}
 
         {/* Recent Donations */}
         <section className="dd-card dd-card--full">
