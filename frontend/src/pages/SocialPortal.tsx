@@ -4,6 +4,83 @@ import { getSocialMediaPosts } from '../api/social'
 import PaginationBar from '../components/PaginationBar'
 import './SocialPortal.css'
 
+// ── Post Scorer: OLS coefficients from social-media-engagement.ipynb ─────────
+// Standardized-feature OLS on log_engagement, n=812 posts, R²=0.406.
+// Only statistically significant features (p < 0.10) are used.
+const OLS_PLATFORM: Record<string, number> = {
+  YouTube: 0.201, TikTok: 0.145, Instagram: 0.142,
+  Facebook: 0, Twitter: -0.095, LinkedIn: -0.128, WhatsApp: -0.337,
+}
+const OLS_CONTENT: Record<string, number> = {
+  'Impact Story': 0.209, 'Educational Content': 0, 'Thank You': 0,
+  'Fundraising Appeal': 0, 'Event Promotion': -0.124, 'General': 0,
+}
+// hour_of_day coef = 0.697 on standardized inputs; mapped to 4 time slots
+const OLS_HOUR: Record<string, number> = {
+  'Night (11pm–5am)':    -1.20 * 0.697,
+  'Morning (6am–11am)':  -0.50 * 0.697,
+  'Afternoon (12pm–5pm)': 0.20 * 0.697,
+  'Evening (6pm–10pm)':   1.00 * 0.697,
+}
+const OLS_VIDEO    =  0.241
+const OLS_LINK     =  0.434
+const OLS_QUESTION = -0.342
+// Range calibrated on worst/best-case combinations so score is always 0–100
+const OLS_MIN   = -1.639
+const OLS_RANGE =  3.421
+
+function computePostScore(
+  platform: string, contentType: string, timeSlot: string,
+  hasVideo: boolean, hasLink: boolean, hasQuestion: boolean,
+): { score: number; tier: 'High' | 'Medium' | 'Low'; factors: { label: string; positive: boolean }[] } {
+  const raw = (OLS_PLATFORM[platform] ?? 0)
+    + (OLS_CONTENT[contentType] ?? 0)
+    + (OLS_HOUR[timeSlot] ?? 0)
+    + (hasVideo ? OLS_VIDEO : 0)
+    + (hasLink  ? OLS_LINK  : 0)
+    + (hasQuestion ? OLS_QUESTION : 0)
+  const score = Math.round(Math.min(100, Math.max(0, (raw - OLS_MIN) / OLS_RANGE * 100)))
+  const tier: 'High' | 'Medium' | 'Low' = score >= 65 ? 'High' : score >= 35 ? 'Medium' : 'Low'
+
+  const allFactors = [
+    { label: timeSlot,     effect: OLS_HOUR[timeSlot] ?? 0 },
+    { label: platform,     effect: OLS_PLATFORM[platform] ?? 0 },
+    { label: contentType,  effect: OLS_CONTENT[contentType] ?? 0 },
+    ...(hasVideo    ? [{ label: 'Video content',          effect: OLS_VIDEO    }] : []),
+    ...(hasLink     ? [{ label: 'Link included',           effect: OLS_LINK     }] : []),
+    ...(hasQuestion ? [{ label: 'Question in caption',     effect: OLS_QUESTION }] : []),
+  ]
+  const factors = allFactors
+    .filter(f => Math.abs(f.effect) > 0.05)
+    .sort((a, b) => Math.abs(b.effect) - Math.abs(a.effect))
+    .slice(0, 3)
+    .map(f => ({ label: f.label, positive: f.effect > 0 }))
+
+  return { score, tier, factors }
+}
+
+// ── Campaign Planner: patterns from campaign-effectiveness.ipynb ──────────────
+// Ridge regression on 4 campaigns (standardized features).
+// Results are directional only — used as a structured checklist, not a model.
+function computeCampaignScore(
+  isHoliday: boolean, postCount: 'Low' | 'Medium' | 'High',
+  isImpactFocused: boolean, hasMatchingGift: boolean,
+): { score: number; tier: 'Strong' | 'Moderate' | 'Needs Work'; tips: string[] } {
+  let s = 0
+  const tips: string[] = []
+  if (isHoliday)       { s += 25; }
+  else                 { tips.push('Holiday-season (Nov–Dec) campaigns averaged higher revenue in the dataset.') }
+  if (postCount === 'High')   s += 25
+  else if (postCount === 'Medium') { s += 15; tips.push('More posts correlated with higher revenue; consider increasing posting frequency.') }
+  else                 { s += 0;  tips.push('Low post count may limit reach — aim for 30+ posts per campaign.') }
+  if (isImpactFocused) { s += 30; }
+  else                 { tips.push('Impact-focused posts (specific outcomes, program updates) drove stronger results.') }
+  if (hasMatchingGift) { s += 20; }
+  else                 { tips.push('Even a small matching gift commitment from a major donor can significantly boost campaign revenue.') }
+  const tier: 'Strong' | 'Moderate' | 'Needs Work' = s >= 65 ? 'Strong' : s >= 35 ? 'Moderate' : 'Needs Work'
+  return { score: s, tier, tips }
+}
+
 type Post = Record<string, unknown>
 
 export default function SocialPortal() {
@@ -19,6 +96,28 @@ export default function SocialPortal() {
   const [playbookOpen, setPlaybookOpen] = useState(true)
   const closeBtnRef = useRef<HTMLButtonElement | null>(null)
   const togglePlaybook = useCallback(() => setPlaybookOpen((v) => !v), [])
+
+  // Post Scorer state
+  const [scorerPlatform, setScorerPlatform]     = useState('Instagram')
+  const [scorerContent,  setScorerContent]      = useState('Impact Story')
+  const [scorerTime,     setScorerTime]         = useState('Evening (6pm–10pm)')
+  const [scorerVideo,    setScorerVideo]        = useState(true)
+  const [scorerLink,     setScorerLink]         = useState(false)
+  const [scorerQuestion, setScorerQuestion]     = useState(false)
+  const postResult = useMemo(
+    () => computePostScore(scorerPlatform, scorerContent, scorerTime, scorerVideo, scorerLink, scorerQuestion),
+    [scorerPlatform, scorerContent, scorerTime, scorerVideo, scorerLink, scorerQuestion],
+  )
+
+  // Campaign Planner state
+  const [campHoliday,  setCampHoliday]  = useState(false)
+  const [campPosts,    setCampPosts]    = useState<'Low' | 'Medium' | 'High'>('Medium')
+  const [campImpact,   setCampImpact]   = useState(true)
+  const [campMatch,    setCampMatch]    = useState(false)
+  const campaignResult = useMemo(
+    () => computeCampaignScore(campHoliday, campPosts, campImpact, campMatch),
+    [campHoliday, campPosts, campImpact, campMatch],
+  )
 
   useEffect(() => {
     getSocialMediaPosts()
@@ -205,6 +304,132 @@ export default function SocialPortal() {
             </p>
           </div>
         )}
+      </section>
+
+      {/* ── Post Scorer ────────────────────────────────────────────────── */}
+      <section className="sp-scorer" aria-labelledby="sp-scorer-heading">
+        <div className="sp-scorer-header">
+          <h2 id="sp-scorer-heading" className="sp-scorer-title">
+            Post Scorer
+          </h2>
+          <p className="sp-scorer-subtitle">
+            Configure a post below to get a predicted engagement score — computed from OLS regression on 812 historical posts (R²&nbsp;=&nbsp;0.41).
+          </p>
+        </div>
+        <div className="sp-scorer-body">
+          <div className="sp-scorer-form">
+            <label className="sp-scorer-field">
+              <span>Platform</span>
+              <select value={scorerPlatform} onChange={e => setScorerPlatform(e.target.value)}>
+                {Object.keys(OLS_PLATFORM).map(p => <option key={p}>{p}</option>)}
+              </select>
+            </label>
+            <label className="sp-scorer-field">
+              <span>Content Type</span>
+              <select value={scorerContent} onChange={e => setScorerContent(e.target.value)}>
+                {Object.keys(OLS_CONTENT).map(c => <option key={c}>{c}</option>)}
+              </select>
+            </label>
+            <label className="sp-scorer-field">
+              <span>Time of Day</span>
+              <select value={scorerTime} onChange={e => setScorerTime(e.target.value)}>
+                {Object.keys(OLS_HOUR).map(t => <option key={t}>{t}</option>)}
+              </select>
+            </label>
+            <div className="sp-scorer-checks">
+              <label className="sp-scorer-check">
+                <input type="checkbox" checked={scorerVideo} onChange={e => setScorerVideo(e.target.checked)} />
+                <span>Video content</span>
+              </label>
+              <label className="sp-scorer-check">
+                <input type="checkbox" checked={scorerLink} onChange={e => setScorerLink(e.target.checked)} />
+                <span>Link in post</span>
+              </label>
+              <label className="sp-scorer-check">
+                <input type="checkbox" checked={scorerQuestion} onChange={e => setScorerQuestion(e.target.checked)} />
+                <span>Question in caption</span>
+              </label>
+            </div>
+          </div>
+          <div className="sp-scorer-result">
+            <div className={`sp-scorer-tier sp-scorer-tier--${postResult.tier.toLowerCase()}`}>
+              {postResult.tier} Engagement
+            </div>
+            <div className="sp-scorer-bar-wrap" aria-label={`Engagement score ${postResult.score} out of 100`}>
+              <div className="sp-scorer-bar" style={{ width: `${postResult.score}%` }} />
+            </div>
+            <div className="sp-scorer-score">{postResult.score} / 100</div>
+            {postResult.factors.length > 0 && (
+              <ul className="sp-scorer-factors">
+                {postResult.factors.map(f => (
+                  <li key={f.label} className={f.positive ? 'factor-pos' : 'factor-neg'}>
+                    {f.positive ? '↑' : '↓'} {f.label}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="sp-scorer-disclaimer">
+              Scores are relative, not absolute. Based on historical patterns — results will vary.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Campaign Planner ────────────────────────────────────────────── */}
+      <section className="sp-scorer" aria-labelledby="sp-campaign-heading">
+        <div className="sp-scorer-header">
+          <h2 id="sp-campaign-heading" className="sp-scorer-title">
+            Campaign Planner
+          </h2>
+          <p className="sp-scorer-subtitle">
+            Rate your campaign configuration against patterns found in historical campaign data. Results are directional — based on&nbsp;4&nbsp;campaigns.
+          </p>
+        </div>
+        <div className="sp-scorer-body">
+          <div className="sp-scorer-form">
+            <label className="sp-scorer-field">
+              <span>Campaign Posts Volume</span>
+              <select value={campPosts} onChange={e => setCampPosts(e.target.value as 'Low' | 'Medium' | 'High')}>
+                <option value="Low">Low (&lt; 30 posts)</option>
+                <option value="Medium">Medium (30–60 posts)</option>
+                <option value="High">High (&gt; 60 posts)</option>
+              </select>
+            </label>
+            <div className="sp-scorer-checks">
+              <label className="sp-scorer-check">
+                <input type="checkbox" checked={campHoliday} onChange={e => setCampHoliday(e.target.checked)} />
+                <span>Holiday season (Nov–Dec)</span>
+              </label>
+              <label className="sp-scorer-check">
+                <input type="checkbox" checked={campImpact} onChange={e => setCampImpact(e.target.checked)} />
+                <span>Impact-focused messaging</span>
+              </label>
+              <label className="sp-scorer-check">
+                <input type="checkbox" checked={campMatch} onChange={e => setCampMatch(e.target.checked)} />
+                <span>Matching gift committed</span>
+              </label>
+            </div>
+          </div>
+          <div className="sp-scorer-result">
+            <div className={`sp-scorer-tier sp-scorer-tier--${campaignResult.tier === 'Strong' ? 'high' : campaignResult.tier === 'Moderate' ? 'medium' : 'low'}`}>
+              {campaignResult.tier} Readiness
+            </div>
+            <div className="sp-scorer-bar-wrap" aria-label={`Campaign readiness score ${campaignResult.score} out of 100`}>
+              <div className="sp-scorer-bar" style={{ width: `${campaignResult.score}%` }} />
+            </div>
+            <div className="sp-scorer-score">{campaignResult.score} / 100</div>
+            {campaignResult.tips.length > 0 && (
+              <ul className="sp-scorer-factors">
+                {campaignResult.tips.map(t => (
+                  <li key={t} className="factor-neg">↑ {t}</li>
+                ))}
+              </ul>
+            )}
+            <p className="sp-scorer-disclaimer">
+              Based on patterns across 4 historical campaigns. Treat as directional guidance only.
+            </p>
+          </div>
+        </div>
       </section>
 
       <div className="social-controls">

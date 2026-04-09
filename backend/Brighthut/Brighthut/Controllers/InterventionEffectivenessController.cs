@@ -13,6 +13,12 @@ namespace Brighthut.Controllers;
 /// Composite improvement target: positive direction in ≥2 of 3 domains
 /// (emotional state, health, education).
 ///
+/// Model performance (intervention-effectiveness.ipynb, n=60 residents):
+///   OLS R² = 0.101 — no features reached statistical significance (p &lt; 0.10).
+///   All ML models (LR, RF, GBT) produced NaN AUC — dataset too small for
+///   reliable coefficient estimation. Weights below are prior estimates based
+///   on domain logic; recommend retraining when n ≥ 100 residents.
+///
 /// Status labels:
 ///   IMPROVING         score ≥ 0.65
 ///   ON TRACK          score ≥ 0.45

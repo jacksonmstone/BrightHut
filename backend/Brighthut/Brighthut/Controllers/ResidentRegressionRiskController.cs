@@ -15,6 +15,12 @@ namespace Brighthut.Controllers;
 /// emotional state has been declining relative to their own historical baseline.
 /// This endpoint surfaces the top factors driving that risk so that social workers
 /// can act on them directly.
+///
+/// Model performance (resident-regression-risk.ipynb, n=60 residents):
+///   GBT test AUC = 1.000 (overfit on n=8 test samples — directional only)
+///   LR  test AUC = 0.429 (below chance — insufficient data for reliable LR)
+///   Optimal threshold: 0.10 from max-F2 search (child welfare context — recall
+///   is prioritized: missing a regression risk is higher cost than a false positive)
 /// </summary>
 [ApiController]
 [Route("api/residents/{residentId:long}/regression-risk")]
@@ -218,8 +224,8 @@ public class ResidentRegressionRiskController : ControllerBase
 
         var score = Sigmoid(linear);
 
-        var tier = score >= 0.60 ? "High Risk"
-                 : score >= 0.35 ? "Moderate Risk"
+        var tier = score >= 0.10 ? "High Risk"
+                 : score >= 0.05 ? "Moderate Risk"
                  : "Stable";
 
         // ── Driver selection: top 2 risk-increasing features ─────────────────
@@ -242,7 +248,7 @@ public class ResidentRegressionRiskController : ControllerBase
             residentId     = residentId,
             riskScore      = Math.Round(score, 4),
             riskTier       = tier,
-            flag           = score >= 0.50,
+            flag           = score >= 0.10,
             features       = f.ToDictionary(kv => kv.Key, kv => Math.Round(kv.Value, 3)),
             topRiskDrivers,
             modelVersion   = "regression_risk_heuristic_v1",
