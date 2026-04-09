@@ -66,6 +66,16 @@
   box-shadow: var(--shadow-sm);
 }
 
+.ad-kpi--link {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ad-kpi--link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
 .ad-kpi--alert {
   border-color: #fed7d7;
   background: #fff5f5;

@@ -135,7 +135,7 @@ export default function Login() {
             localStorage.setItem('email', res.email)
             if (res.firstName) localStorage.setItem('firstName', res.firstName)
             window.dispatchEvent(new Event('auth-change'))
-            navigate(['staff', 'admin'].includes(res.role.toLowerCase()) ? '/participants' : '/')
+            navigate('/')
           } catch (err: unknown) {
             setFormError(err instanceof Error ? err.message : 'Google login failed.')
           } finally {
@@ -181,7 +181,7 @@ export default function Login() {
     localStorage.setItem('email', res.email)
     if (res.firstName) localStorage.setItem('firstName', res.firstName)
     window.dispatchEvent(new Event('auth-change'))
-    navigate(['staff', 'admin'].includes(res.role.toLowerCase()) ? '/participants' : '/')
+    navigate('/')
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

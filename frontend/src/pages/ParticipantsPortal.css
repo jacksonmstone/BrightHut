@@ -5,31 +5,29 @@
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  position: relative;
 }
 
 .participants-header {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
-.participants-header h1 { font-size: 1.8rem; }
+.participants-header h1 { font-size: 1.8rem; margin: 0; }
 .subtitle { color: var(--text-muted); font-size: 0.95rem; margin-top: 0.25rem; }
 
-.back-btn {
-  position: absolute;
-  top: 2rem;
-  left: 1.5rem;
+.pp-back-btn {
   background: none;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 0.4rem 0.9rem;
-  color: var(--text-muted);
+  color: var(--text);
   font-size: 0.9rem;
   white-space: nowrap;
+  cursor: pointer;
+  margin-bottom: 10px;
 }
-.back-btn:hover { background: var(--bg); }
+.pp-back-btn:hover { background: var(--bg); }
 
 .tab-scroll {
   display: flex;

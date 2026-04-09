@@ -138,22 +138,22 @@ export default function AdminDashboard() {
 
       {/* KPI Cards */}
       <div className="ad-kpis">
-        <div className="ad-kpi">
+        <div className="ad-kpi ad-kpi--link" onClick={() => navigate('/participants')} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && navigate('/participants')}>
           <span className="ad-kpi-label">Active Residents</span>
           <span className="ad-kpi-value">{activeResidents}</span>
           <span className="ad-kpi-sub">across {totalSafehouses} safehouses</span>
         </div>
-        <div className="ad-kpi">
+        <div className="ad-kpi ad-kpi--link" onClick={() => navigate('/donors')} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && navigate('/donors')}>
           <span className="ad-kpi-label">Total Raised</span>
           <span className="ad-kpi-value">{totalRaisedUsd}</span>
           <span className="ad-kpi-sub">{thisMonthUsd} this month</span>
         </div>
-        <div className="ad-kpi">
+        <div className="ad-kpi ad-kpi--link" onClick={() => navigate('/donors')} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && navigate('/donors')}>
           <span className="ad-kpi-label">Active Supporters</span>
           <span className="ad-kpi-value">{activeSupporters}</span>
           <span className="ad-kpi-sub">of {supporters.length} total</span>
         </div>
-        <div className="ad-kpi ad-kpi--alert">
+        <div className="ad-kpi ad-kpi--alert ad-kpi--link" onClick={() => navigate('/participants')} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && navigate('/participants')}>
           <span className="ad-kpi-label">Open Incidents</span>
           <span className="ad-kpi-value">{openIncidents.length}</span>
           <span className="ad-kpi-sub">unresolved</span>

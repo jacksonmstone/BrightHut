@@ -318,14 +318,12 @@ export default function ParticipantsPortal() {
       )}
 
       <div className="participants-header">
-        <button className="back-btn" onClick={() => navigate('/')}>← Back</button>
-        <div>
-          <h1>Caseload inventory</h1>
-          <p className="subtitle">
+        <button className="pp-back-btn" onClick={() => navigate('/')}>← Back</button>
+        <h1>Caseload inventory</h1>
+        <p className="subtitle">
             Resident records, process notes, visitations, and plans — filter by status, safehouse, and category; open a
             resident for full detail.
-          </p>
-        </div>
+        </p>
       </div>
 
       <div className="participants-controls">

@@ -5,53 +5,56 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  position: relative;
 }
 
-.donors-header {
+.dp-header {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
 }
 
-.donors-header h1 { font-size: 1.8rem; }
+.dp-header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  margin: 0;
+}
 
-.subtitle { color: var(--text-muted); font-size: 0.95rem; margin-top: 0.25rem; }
+.subtitle { color: var(--text-muted); font-size: 0.85rem; margin-top: 2px; }
 
-.back-btn {
-  position: absolute;
-  top: 2rem;
-  left: 1.5rem;
+.dp-back-btn {
   background: none;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 0.4rem 0.9rem;
-  color: var(--text-muted);
-  font-size: 0.9rem;
-  white-space: nowrap;
+  padding: 0.3rem 0.8rem;
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: 8px;
 }
-.back-btn:hover { background: var(--bg); }
+.dp-back-btn:hover { background: var(--bg); }
 
 .donors-stats {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
-  justify-content: center;
-}
-
-.stat-card {
+  gap: 0.75rem 1.5rem;
+  align-items: center;
+  padding: 0.75rem 1rem;
   background: var(--bg-white);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 1rem 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  box-shadow: var(--shadow-sm);
 }
 
-.stat-value { font-size: 1.5rem; font-weight: 700; color: var(--primary-dark); }
-.stat-label { font-size: 0.82rem; color: var(--text-muted); }
+.stat-card {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.stat-value { font-size: 1.1rem; font-weight: 700; color: var(--primary-dark); }
+.stat-label { font-size: 0.8rem; color: var(--text-muted); }
 
 .donors-controls {
   display: flex;
@@ -60,7 +63,7 @@
   flex-wrap: wrap;
 }
 
-.tab-scroll { display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: center; }
+.tab-scroll { display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: flex-start; }
 
 .tab-btn {
   background: none;

@@ -9,6 +9,7 @@ import AboutUs from './pages/AboutUs'
 import SocialPortal from './pages/SocialPortal'
 import DonatePaymentPage from './pages/DonatePaymentPage'
 import DonorsPortal from './pages/DonorsPortal'
+import DonationsDashboard from './pages/DonationsDashboard'
 import MyContributions from './pages/MyContributions'
 import AdminDashboard from './pages/AdminDashboard'
 import ResidentDetail from './pages/ResidentDetail'
@@ -51,10 +52,11 @@ function App() {
           path="/donors"
           element={
             <RequireAuth roles={['donor', 'staff', 'admin']}>
-              {['staff', 'admin'].includes((localStorage.getItem('role') ?? '').toLowerCase()) ? <DonorsPortal /> : <MyContributions />}
+              {['staff', 'admin'].includes((localStorage.getItem('role') ?? '').toLowerCase()) ? <DonationsDashboard /> : <MyContributions />}
             </RequireAuth>
           }
         />
+        <Route path="/donors/manage" element={<RequireAuth roles={['staff', 'admin']}><DonorsPortal /></RequireAuth>} />
         <Route path="/participants" element={<RequireAuth roles={['staff', 'admin']}><ParticipantsPortal /></RequireAuth>} />
         <Route path="/participants/:id" element={<RequireAuth roles={['staff', 'admin']}><ResidentDetail /></RequireAuth>} />
         <Route path="/analytics" element={<RequireAuth roles={['staff', 'admin']}><Analytics /></RequireAuth>} />

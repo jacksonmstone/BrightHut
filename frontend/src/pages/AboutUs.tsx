@@ -32,6 +32,7 @@ const PILLARS = [
 
 export default function AboutUs() {
   const navigate = useNavigate()
+  const isLoggedIn = !!localStorage.getItem('token')
   const [activeId, setActiveId] = useState('protect')
   const panel = PILLARS.find((p) => p.id === activeId) ?? PILLARS[0]
 
@@ -53,7 +54,9 @@ export default function AboutUs() {
           </p>
           <div className="about-hero-actions">
             <button className="btn-primary" onClick={() => navigate('/#donate')}>Donate now</button>
-            <button className="btn-secondary" onClick={() => navigate('/create-account')}>Get involved</button>
+            {!isLoggedIn && (
+              <button className="btn-secondary" onClick={() => navigate('/create-account')}>Get involved</button>
+            )}
           </div>
         </div>
         <div className="about-hero-visual">
