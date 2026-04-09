@@ -36,6 +36,89 @@
 }
 .dp-back-btn:hover { background: var(--bg); }
 
+/* ── ML Insight Cards (churn + upgrade overview) ──────────────────────────── */
+
+.dp-insight-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+@media (max-width: 680px) {
+  .dp-insight-row { grid-template-columns: 1fr; }
+}
+
+.dp-insight-card {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.dp-insight-card--churn  { border-top: 3px solid #ef4444; }
+.dp-insight-card--upgrade { border-top: 3px solid #7c3aed; }
+
+.dp-insight-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.dp-insight-title {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+.dp-insight-sub {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+.dp-insight-more {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
+  color: var(--primary);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.dp-insight-more:hover { background: var(--bg); }
+
+.dp-insight-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.dp-insight-item {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.dp-insight-name {
+  font-size: 0.82rem;
+  font-weight: 500;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dp-insight-bar {
+  width: 80px;
+  flex-shrink: 0;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+
 .donors-stats {
   display: flex;
   flex-wrap: wrap;
@@ -210,6 +293,27 @@
 }
 .dp-add-btn:hover { background: var(--primary-dark); }
 
+
+.dp-ml-section {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.dp-ml-section-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dp-ml-section-hint {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
 
 .dp-churn-row {
   display: flex;

@@ -71,7 +71,6 @@ export default function Navbar() {
           <Link to="/about" className="nav-link">About Us</Link>
           <Link to="/impact" className="nav-link">Impact</Link>
           {(!loggedIn || isStaffLike) && <Link to="/social" className="nav-link">Social Media</Link>}
-          <Link to="/privacy" className="nav-link">Privacy</Link>
           {loggedIn && (
             <>
               {isStaffLike && <Link to="/dashboard" className="nav-link">Dashboard</Link>}
@@ -80,6 +79,7 @@ export default function Navbar() {
               {isStaffLike && <Link to="/analytics" className="nav-link">Analytics</Link>}
             </>
           )}
+          <Link to="/privacy" className="nav-link">Privacy</Link>
           {loggedIn ? (
             <button type="button" className="nav-btn-logout" onClick={handleLogout}>Log Out</button>
           ) : (

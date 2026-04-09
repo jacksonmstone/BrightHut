@@ -211,6 +211,22 @@ export default function DonorsPortal() {
     return m
   }, [data.supporters])
 
+  const topChurnDonors = useMemo(() =>
+    Array.from(churnScores.values())
+      .filter(e => e.churnTier !== 'Stable')
+      .sort((a, b) => b.churnProbability - a.churnProbability)
+      .slice(0, 5)
+      .map(e => ({ ...e, name: supporterMap.get(e.supporterId) || `Donor #${e.supporterId}` }))
+  , [churnScores, supporterMap])
+
+  const topUpgradeDonors = useMemo(() =>
+    Array.from(upgradeScores.values())
+      .filter(e => e.upgradeTier !== 'LOW')
+      .sort((a, b) => b.upgradeProbability - a.upgradeProbability)
+      .slice(0, 5)
+      .map(e => ({ ...e, name: supporterMap.get(e.supporterId) || `Donor #${e.supporterId}` }))
+  , [upgradeScores, supporterMap])
+
   const handleSave = async (d: Record<string, unknown>) => {
     if (!formState) return
     console.log('[DonorsPortal] handleSave mode:', formState.mode, 'data:', d)
@@ -272,53 +288,59 @@ export default function DonorsPortal() {
               {!!r.first_donation_date && <div className="donor-field"><span className="field-label">First Donation</span><span>{String(r.first_donation_date)}</span></div>}
               {!!r.acquisition_channel && <div className="donor-field"><span className="field-label">Source</span><span>{String(r.acquisition_channel)}</span></div>}
               {churn && (
-                <div className="dp-churn-row">
-                  <span className={`dp-churn-badge dp-churn-badge--${churnTierKey}`}>{churn.churnTier}</span>
-                  <div className="dp-churn-bar-track">
-                    <div className={`dp-churn-bar-fill dp-churn-bar-fill--${churnTierKey}`} style={{ width: `${Math.round(churn.churnProbability * 100)}%` }} />
+                <div className="dp-ml-section">
+                  <span className="dp-ml-section-label">Churn risk <span className="dp-ml-section-hint">— likelihood of lapsing</span></span>
+                  <div className="dp-churn-row">
+                    <span className={`dp-churn-badge dp-churn-badge--${churnTierKey}`}>{churn.churnTier}</span>
+                    <div className="dp-churn-bar-track">
+                      <div className={`dp-churn-bar-fill dp-churn-bar-fill--${churnTierKey}`} style={{ width: `${Math.round(churn.churnProbability * 100)}%` }} />
+                    </div>
+                    <span className="dp-churn-pct">{Math.round(churn.churnProbability * 100)}%</span>
                   </div>
-                  <span className="dp-churn-pct">{Math.round(churn.churnProbability * 100)}%</span>
+                  {churn.topRiskDriver && (
+                    <div className="donor-field dp-churn-driver">
+                      <span className="field-label">Risk factor</span>
+                      <span>{churn.topRiskDriver.feature}</span>
+                    </div>
+                  )}
+                  {(() => {
+                    const suggestion = getChurnAction(churn.topRiskDriver?.rawKey ?? '', churn.churnTier)
+                    return suggestion ? (
+                      <div className="dp-suggestion dp-suggestion--churn">
+                        <span className="dp-suggestion-icon">→</span>
+                        <span>{suggestion}</span>
+                      </div>
+                    ) : null
+                  })()}
                 </div>
               )}
-              {churn?.topRiskDriver && (
-                <div className="donor-field dp-churn-driver">
-                  <span className="field-label">Risk factor</span>
-                  <span>{churn.topRiskDriver.feature}</span>
-                </div>
-              )}
-              {churn && (() => {
-                const suggestion = getChurnAction(churn.topRiskDriver?.rawKey ?? '', churn.churnTier)
-                return suggestion ? (
-                  <div className="dp-suggestion dp-suggestion--churn">
-                    <span className="dp-suggestion-icon">→</span>
-                    <span>{suggestion}</span>
-                  </div>
-                ) : null
-              })()}
               {upgrade && (
-                <div className="dp-upgrade-row">
-                  <span className={`dp-upgrade-badge dp-upgrade-badge--${upgradeTierKey}`}>{upgrade.upgradeTier} upgrade</span>
-                  <div className="dp-churn-bar-track">
-                    <div className={`dp-upgrade-bar-fill dp-upgrade-bar-fill--${upgradeTierKey}`} style={{ width: `${Math.round(upgrade.upgradeProbability * 100)}%` }} />
+                <div className="dp-ml-section">
+                  <span className="dp-ml-section-label">Upgrade potential <span className="dp-ml-section-hint">— likelihood of increasing gift</span></span>
+                  <div className="dp-upgrade-row">
+                    <span className={`dp-upgrade-badge dp-upgrade-badge--${upgradeTierKey}`}>{upgrade.upgradeTier}</span>
+                    <div className="dp-churn-bar-track">
+                      <div className={`dp-upgrade-bar-fill dp-upgrade-bar-fill--${upgradeTierKey}`} style={{ width: `${Math.round(upgrade.upgradeProbability * 100)}%` }} />
+                    </div>
+                    <span className="dp-churn-pct">{Math.round(upgrade.upgradeProbability * 100)}%</span>
                   </div>
-                  <span className="dp-churn-pct">{Math.round(upgrade.upgradeProbability * 100)}%</span>
+                  {upgrade.topUpgradeSignal && (
+                    <div className="donor-field dp-churn-driver">
+                      <span className="field-label">Upgrade signal</span>
+                      <span>{upgrade.topUpgradeSignal.feature}</span>
+                    </div>
+                  )}
+                  {(() => {
+                    const suggestion = getUpgradeAction(upgrade.topUpgradeSignal?.rawKey ?? '', upgrade.upgradeTier)
+                    return suggestion ? (
+                      <div className="dp-suggestion dp-suggestion--upgrade">
+                        <span className="dp-suggestion-icon">→</span>
+                        <span>{suggestion}</span>
+                      </div>
+                    ) : null
+                  })()}
                 </div>
               )}
-              {upgrade?.topUpgradeSignal && (
-                <div className="donor-field dp-churn-driver">
-                  <span className="field-label">Upgrade signal</span>
-                  <span>{upgrade.topUpgradeSignal.feature}</span>
-                </div>
-              )}
-              {upgrade && (() => {
-                const suggestion = getUpgradeAction(upgrade.topUpgradeSignal?.rawKey ?? '', upgrade.upgradeTier)
-                return suggestion ? (
-                  <div className="dp-suggestion dp-suggestion--upgrade">
-                    <span className="dp-suggestion-icon">→</span>
-                    <span>{suggestion}</span>
-                  </div>
-                ) : null
-              })()}
             </div>
           </div>
         )
@@ -387,6 +409,67 @@ export default function DonorsPortal() {
         <div className="stat-card"><span className="stat-value">{formatUsd(phpToUsd(totalMonetary))}</span><span className="stat-label">Total Monetary</span></div>
         <div className="stat-card"><span className="stat-value">{data.donations.filter((d) => d.is_recurring).length}</span><span className="stat-label">Recurring</span></div>
       </div>
+
+      {(topChurnDonors.length > 0 || topUpgradeDonors.length > 0) && (
+        <div className="dp-insight-row">
+          {topChurnDonors.length > 0 && (
+            <div className="dp-insight-card dp-insight-card--churn">
+              <div className="dp-insight-header">
+                <div>
+                  <span className="dp-insight-title">Donors at Risk of Lapsing</span>
+                  <span className="dp-insight-sub">Highest predicted churn probability</span>
+                </div>
+                <button className="dp-insight-more" onClick={() => { setTab('supporters'); setFilterChurn('At Risk'); setSearch(''); setPage(1); setFilterType(''); setFilterStatus(''); setFilterUpgrade('') }}>
+                  See more →
+                </button>
+              </div>
+              <ul className="dp-insight-list">
+                {topChurnDonors.map(d => {
+                  const tk = d.churnTier === 'At Risk' ? 'risk' : 'moderate'
+                  return (
+                    <li key={d.supporterId} className="dp-insight-item">
+                      <span className="dp-insight-name">{d.name}</span>
+                      <span className={`dp-churn-badge dp-churn-badge--${tk}`}>{d.churnTier}</span>
+                      <div className="dp-churn-bar-track dp-insight-bar">
+                        <div className={`dp-churn-bar-fill dp-churn-bar-fill--${tk}`} style={{ width: `${Math.round(d.churnProbability * 100)}%` }} />
+                      </div>
+                      <span className="dp-churn-pct">{Math.round(d.churnProbability * 100)}%</span>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          )}
+          {topUpgradeDonors.length > 0 && (
+            <div className="dp-insight-card dp-insight-card--upgrade">
+              <div className="dp-insight-header">
+                <div>
+                  <span className="dp-insight-title">Donors Ready to Upgrade</span>
+                  <span className="dp-insight-sub">Highest predicted upgrade probability</span>
+                </div>
+                <button className="dp-insight-more" onClick={() => { setTab('supporters'); setFilterUpgrade('HIGH'); setSearch(''); setPage(1); setFilterType(''); setFilterStatus(''); setFilterChurn('') }}>
+                  See more →
+                </button>
+              </div>
+              <ul className="dp-insight-list">
+                {topUpgradeDonors.map(d => {
+                  const tk = d.upgradeTier === 'HIGH' ? 'high' : 'medium'
+                  return (
+                    <li key={d.supporterId} className="dp-insight-item">
+                      <span className="dp-insight-name">{d.name}</span>
+                      <span className={`dp-upgrade-badge dp-upgrade-badge--${tk}`}>{d.upgradeTier}</span>
+                      <div className="dp-churn-bar-track dp-insight-bar">
+                        <div className={`dp-upgrade-bar-fill dp-upgrade-bar-fill--${tk}`} style={{ width: `${Math.round(d.upgradeProbability * 100)}%` }} />
+                      </div>
+                      <span className="dp-churn-pct">{Math.round(d.upgradeProbability * 100)}%</span>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="tab-scroll">
         {TABS.map((t) => (
