@@ -11,6 +11,11 @@ namespace Brighthut.Controllers;
 /// logistic regression model (see ml-pipelines/reintegration-readiness.ipynb §5).
 /// Features and weights mirror those described in the notebook; the sigmoid
 /// output maps to the same three tiers used in the deployment notes.
+///
+/// Model performance (reintegration-readiness.ipynb, n=60 residents, 31.7% positive rate):
+///   GBT CV AUC = 0.881 ± 0.062 (best model)
+///   LR CV AUC  = 0.557 ± 0.138 (explanatory model)
+///   Optimal threshold: 0.55 confirmed by notebook threshold search
 /// </summary>
 [ApiController]
 [Route("api/residents/{residentId:long}/readiness-score")]
@@ -189,8 +194,8 @@ public class ResidentReadinessController : ControllerBase
 
         var score = Sigmoid(linear);
 
-        var tier = score >= 0.70 ? "High Readiness"
-                 : score >= 0.45 ? "Moderate Readiness"
+        var tier = score >= 0.55 ? "High Readiness"
+                 : score >= 0.35 ? "Moderate Readiness"
                  : "Needs Support";
 
         // ── Driver selection: top 2 positives + top 1 negative ───────────────

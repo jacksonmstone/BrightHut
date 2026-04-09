@@ -16,8 +16,15 @@ namespace Brighthut.Controllers;
 /// Churn definition (from notebook §3): a supporter who made at least one
 /// monetary donation but has not donated in the 12 months prior to today.
 ///
-/// Tiers:  At Risk  ≥ 0.65 | Moderate ≥ 0.40 | Stable &lt; 0.40
-/// Flag:   score ≥ 0.55
+/// Model performance (donor-retention.ipynb, n=60 donors):
+///   LR explanatory AUC = 0.932 (test) / 0.889 CV
+///   Best model: GBT AUC = 1.000 (overfit on small dataset — directional only)
+///   Optimal threshold: 0.10 derived from max-F2 on n=15 test samples
+///   (F2 weights recall 2× over precision — missing a churning donor costs more
+///    than a false positive outreach call)
+///
+/// Tiers:  At Risk  ≥ 0.10 | Moderate ≥ 0.05 | Stable &lt; 0.05
+/// Flag:   score ≥ 0.10
 /// </summary>
 [ApiController]
 [Route("api/donors/churn-risk")]
@@ -44,8 +51,10 @@ public class DonorChurnRiskController : ControllerBase
     //   num_safehouses_supported mean ≈ 1.2,  range 0–5      (distinct safehouses)
     //   org_tenure_days          mean ≈ 400,  range 0–2000   (days since first gift)
     //
-    // RISK — donor type:
+    // PROTECTIVE — donor type:
     //   is_international         mean ≈ 0.3,  range 0–1      (1 = non-PH country)
+    //   Note: LR odds ratio = 0.803 (protective) — international donors churn less.
+    //         Weight is negative to reflect this; prior implementation had wrong sign.
     //
     // Calibration targets (other features at 0):
     //   recency=30   → score ≈ 0.18  (recently gave — Stable)
@@ -62,7 +71,7 @@ public class DonorChurnRiskController : ControllerBase
         ("tenure_days",               -0.001),
         ("has_inkind",                -0.350),
         ("num_safehouses_supported",  -0.200),
-        ("is_international",          +0.200),
+        ("is_international",          -0.200),
         ("org_tenure_days",           -0.0008),
     ];
 
@@ -197,8 +206,8 @@ public class DonorChurnRiskController : ControllerBase
             }
 
             var score = Sigmoid(linear);
-            var tier  = score >= 0.65 ? "At Risk"
-                      : score >= 0.40 ? "Moderate"
+            var tier  = score >= 0.10 ? "At Risk"
+                      : score >= 0.05 ? "Moderate"
                       : "Stable";
 
             var topDriver = contributions
@@ -217,7 +226,7 @@ public class DonorChurnRiskController : ControllerBase
                 DisplayName:      (sup.GetValueOrDefault("display_name") as string) ?? "—",
                 ChurnProbability: Math.Round(score, 4),
                 ChurnTier:        tier,
-                ChurnFlag:        score >= 0.55,
+                ChurnFlag:        score >= 0.10,
                 RecencyDays:      (int)recencyDays,
                 Frequency:        rfm.Frequency,
                 TopRiskDriver:    topDriver

@@ -434,3 +434,164 @@
   margin: 0;
   line-height: 1.5;
 }
+
+/* ── Post Scorer / Campaign Planner ─────────────────────────────────────── */
+
+.sp-scorer {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.sp-scorer-header {
+  padding: 0.85rem 1.1rem 0;
+}
+
+.sp-scorer-title {
+  font-size: 0.97rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  margin: 0 0 0.2rem;
+}
+
+.sp-scorer-subtitle {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0 0 0.75rem;
+  line-height: 1.5;
+}
+
+.sp-scorer-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  padding: 0 1.1rem 1rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+
+@media (max-width: 640px) {
+  .sp-scorer-body { grid-template-columns: 1fr; }
+}
+
+.sp-scorer-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sp-scorer-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.sp-scorer-field select {
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  background: var(--bg-white);
+  color: var(--text);
+  font-family: var(--sans);
+}
+
+.sp-scorer-field select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.sp-scorer-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.sp-scorer-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.sp-scorer-check input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--primary);
+  flex-shrink: 0;
+}
+
+.sp-scorer-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  justify-content: flex-start;
+}
+
+.sp-scorer-tier {
+  display: inline-block;
+  padding: 0.3rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  align-self: flex-start;
+}
+
+.sp-scorer-tier--high    { background: #d1fae5; color: #065f46; }
+.sp-scorer-tier--medium  { background: #fef9c3; color: #713f12; }
+.sp-scorer-tier--low     { background: #fee2e2; color: #991b1b; }
+
+.sp-scorer-bar-wrap {
+  height: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.sp-scorer-bar {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 999px;
+  transition: width 0.35s ease;
+  min-width: 2px;
+}
+
+.sp-scorer-score {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  line-height: 1;
+}
+
+.sp-scorer-factors {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.sp-scorer-factors li {
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.factor-pos { color: #065f46; }
+.factor-neg { color: #b45309; }
+
+.sp-scorer-disclaimer {
+  font-size: 0.73rem;
+  color: #aaa;
+  font-style: italic;
+  margin: 0;
+  line-height: 1.4;
+}

@@ -16,12 +16,18 @@ namespace Brighthut.Controllers;
 /// Upgrade definition (from notebook §1): a donor whose recent-window average gift
 /// is ≥ 1.5× their historical-window average (recent window = last 180 days).
 ///
-/// Tiers:  HIGH   ≥ 0.60 | MEDIUM ≥ 0.35 | LOW &lt; 0.35
+/// Model performance (donor-upgrade-potential.ipynb, n=38 donors, 42% upgrade rate):
+///   GBT CV AUC = 0.978, test AUC = 1.000 (overfit — directional only)
+///   LR failed (singular matrix — near-perfect collinearity on small dataset)
+///   Notebook GBT threshold: 0.878 on n=8 test samples — too aggressive to apply directly.
+///   Using 0.65/0.40 as a conservative adjustment toward the notebook's direction.
+///
+/// Tiers:  HIGH   ≥ 0.65 | MEDIUM ≥ 0.40 | LOW &lt; 0.40
 /// Flag:   score ≥ 0.50
 ///
 /// Calibration targets (other features at typical values):
 ///   flat/declining donor      → score ≈ 0.25  (LOW)
-///   steadily growing donor    → score ≈ 0.60  (MEDIUM/HIGH boundary)
+///   steadily growing donor    → score ≈ 0.65  (MEDIUM/HIGH boundary)
 ///   strongly accelerating     → score ≈ 0.85  (HIGH)
 /// </summary>
 [ApiController]
@@ -267,8 +273,8 @@ public class DonorUpgradePotentialController : ControllerBase
             }
 
             var score = Sigmoid(linear);
-            var tier  = score >= 0.60 ? "HIGH"
-                      : score >= 0.35 ? "MEDIUM"
+            var tier  = score >= 0.65 ? "HIGH"
+                      : score >= 0.40 ? "MEDIUM"
                       : "LOW";
 
             // Top positive contributor (the main reason this donor looks upgrade-ready)
