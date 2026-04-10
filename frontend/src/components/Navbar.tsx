@@ -70,7 +70,7 @@ export default function Navbar() {
         <div className="navbar-links" id="navbar-site-links">
           <Link to="/about" className="nav-link">About Us</Link>
           <Link to="/impact" className="nav-link">Impact</Link>
-          {(!loggedIn || isStaffLike) && <Link to="/social" className="nav-link">Social Media</Link>}
+          {isStaffLike && <Link to="/social" className="nav-link">Social Media</Link>}
           {loggedIn && (
             <>
               {isStaffLike && <Link to="/dashboard" className="nav-link">Dashboard</Link>}
