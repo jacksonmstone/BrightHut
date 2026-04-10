@@ -71,6 +71,8 @@ export default function Login() {
     if (needsTwoFactor || needsTwoFactorSetup) return
 
     let cancelled = false
+    let retryTimer: number | null = null
+    let existingScript: HTMLScriptElement | null = null
 
     const initGoogle = () => {
       if (cancelled || !googleButtonRef.current || !window.google?.accounts?.id) return
@@ -152,23 +154,74 @@ export default function Login() {
         text: 'signin_with',
         width: 320,
       })
+
+      return true
     }
 
-    const existing = document.getElementById('google-identity-service') as HTMLScriptElement | null
-    if (existing) {
-      initGoogle()
+    const scheduleInitRetry = () => {
+      if (retryTimer !== null) return
+
+      let attempts = 0
+      retryTimer = window.setInterval(() => {
+        attempts += 1
+        if (cancelled) {
+          if (retryTimer !== null) {
+            window.clearInterval(retryTimer)
+            retryTimer = null
+          }
+          return
+        }
+
+        if (initGoogle()) {
+          if (retryTimer !== null) {
+            window.clearInterval(retryTimer)
+            retryTimer = null
+          }
+          return
+        }
+
+        if (attempts >= 30) {
+          if (retryTimer !== null) {
+            window.clearInterval(retryTimer)
+            retryTimer = null
+          }
+        }
+      }, 100)
+    }
+
+    const handleScriptLoad = () => {
+      if (!initGoogle()) {
+        scheduleInitRetry()
+      }
+    }
+
+    existingScript = document.getElementById('google-identity-service') as HTMLScriptElement | null
+    if (existingScript) {
+      existingScript.addEventListener('load', handleScriptLoad)
+      if (!initGoogle()) {
+        scheduleInitRetry()
+      }
     } else {
       const script = document.createElement('script')
       script.id = 'google-identity-service'
       script.src = 'https://accounts.google.com/gsi/client'
       script.async = true
       script.defer = true
-      script.onload = initGoogle
+      script.addEventListener('load', handleScriptLoad)
       document.head.appendChild(script)
+      existingScript = script
+      scheduleInitRetry()
     }
 
     return () => {
       cancelled = true
+      if (retryTimer !== null) {
+        window.clearInterval(retryTimer)
+        retryTimer = null
+      }
+      if (existingScript) {
+        existingScript.removeEventListener('load', handleScriptLoad)
+      }
     }
   }, [googleClientId, navigate, needsTwoFactor, needsTwoFactorSetup])
 

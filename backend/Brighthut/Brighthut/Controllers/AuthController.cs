@@ -32,11 +32,16 @@ public class AuthController : ControllerBase
         {
             using var conn = _factory.CreateConnection();
             conn.Open();
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = @"
-                ALTER TABLE users ADD COLUMN two_factor_secret TEXT;
-                ALTER TABLE users ADD COLUMN two_factor_enabled INTEGER NOT NULL DEFAULT 0;";
-            try { cmd.ExecuteNonQuery(); } catch { }
+            foreach (var (col, def) in new[]
+            {
+                ("two_factor_secret", "TEXT"),
+                ("two_factor_enabled", "INTEGER NOT NULL DEFAULT 0"),
+            })
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = $"ALTER TABLE users ADD COLUMN {col} {def}";
+                try { cmd.ExecuteNonQuery(); } catch { }
+            }
         }
         else
         {
