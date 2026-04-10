@@ -19,7 +19,7 @@ public class DonorDonationsController : ControllerBase
         _db = db;
     }
 
-    public sealed record CreateDonorDonationRequest(decimal AmountUsd, string? Notes, string? CampaignName);
+    public sealed record CreateDonorDonationRequest(decimal AmountUsd, string? Notes, string? CampaignName, string? DonationDate);
 
     /// <summary>Record a demo monetary gift tied to the logged-in donor (no real payment processor).</summary>
     [Authorize(Roles = "donor")]
@@ -38,7 +38,13 @@ public class DonorDonationsController : ControllerBase
         var (fn, ln) = _db.GetUserNamesByEmail(email);
         var supporterId = _db.EnsureSupporterForDonorEmail(email, fn, ln);
         var amountPhp = Math.Round(req.AmountUsd * PhpPerUsd, 2);
-        var today = DateTime.UtcNow.ToString("yyyy-MM-dd");
+        // Prefer the client's local date (avoids UTC vs local timezone off-by-one)
+        var today = !string.IsNullOrWhiteSpace(req.DonationDate)
+            && System.DateTime.TryParseExact(req.DonationDate, "yyyy-MM-dd",
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None, out _)
+            ? req.DonationDate
+            : DateTime.UtcNow.ToString("yyyy-MM-dd");
         var campaign = string.IsNullOrWhiteSpace(req.CampaignName) ? "Online Giving" : req.CampaignName.Trim();
         var notes = string.IsNullOrWhiteSpace(req.Notes)
             ? "Recorded via donor dashboard (demo gift; not a live payment)."
