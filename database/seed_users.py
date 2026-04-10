@@ -5,13 +5,13 @@ Seed users into database/brighthut.sqlite.
 Requires: pip install bcrypt
 
 Run from repo root:
-  SEED_STAFF_PASSWORD=<pass> SEED_DONOR_PASSWORD=<pass> python database/seed_users.py
+    SEED_ADMIN_PASSWORD=<pass> SEED_DONOR_PASSWORD=<pass> python database/seed_users.py
 
 Required environment variables:
-  SEED_STAFF_PASSWORD  — password for staff@brighthut.org
+    SEED_ADMIN_PASSWORD  — password for admin@brighthut.org
   SEED_DONOR_PASSWORD  — password for donor@brighthut.org
 
-role must be 'staff' or 'donor'.
+role must be 'admin' or 'donor'.
 """
 
 from __future__ import annotations
@@ -29,24 +29,24 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = REPO_ROOT / "database" / "brighthut.sqlite"
 
 # ── Load passwords from environment variables (never hardcode) ────────────────
-_staff_password = os.environ.get("SEED_STAFF_PASSWORD")
+_admin_password = os.environ.get("SEED_ADMIN_PASSWORD")
 _donor_password = os.environ.get("SEED_DONOR_PASSWORD")
 
-missing = [v for v, val in [("SEED_STAFF_PASSWORD", _staff_password), ("SEED_DONOR_PASSWORD", _donor_password)] if not val]
+missing = [v for v, val in [("SEED_ADMIN_PASSWORD", _admin_password), ("SEED_DONOR_PASSWORD", _donor_password)] if not val]
 if missing:
     raise SystemExit(
         f"Missing required environment variable(s): {', '.join(missing)}\n"
         "Set them before running this script:\n"
-        "  export SEED_STAFF_PASSWORD='...' SEED_DONOR_PASSWORD='...'"
+        "  export SEED_ADMIN_PASSWORD='...' SEED_DONOR_PASSWORD='...'"
     )
 
 USERS: list[dict] = [
     {
-        "email": "staff@brighthut.org",
-        "password": _staff_password,
-        "role": "staff",
-        "first_name": "Staff",
-        "last_name": "Admin",
+        "email": "admin@brighthut.org",
+        "password": _admin_password,
+        "role": "admin",
+        "first_name": "Admin",
+        "last_name": "User",
     },
     {
         "email": "donor@brighthut.org",
@@ -66,6 +66,26 @@ def seed(db_path: Path = DB_PATH) -> None:
     conn = sqlite3.connect(db_path)
     try:
         created = updated = 0
+
+        # migrate legacy staff account to admin when needed
+        legacy_staff = conn.execute(
+            "SELECT user_id FROM users WHERE lower(email) = 'staff@brighthut.org'"
+        ).fetchone()
+        admin_user = conn.execute(
+            "SELECT user_id FROM users WHERE lower(email) = 'admin@brighthut.org'"
+        ).fetchone()
+        if legacy_staff and not admin_user:
+            conn.execute(
+                """
+                UPDATE users
+                SET email = 'admin@brighthut.org', role = 'admin', first_name = 'Admin', last_name = 'User', is_active = 1
+                WHERE lower(email) = 'staff@brighthut.org'
+                """
+            )
+            print("  Migrated: staff@brighthut.org -> admin@brighthut.org")
+        elif legacy_staff and admin_user:
+            conn.execute("DELETE FROM users WHERE lower(email) = 'staff@brighthut.org'")
+            print("  Removed duplicate legacy staff@brighthut.org user")
         for u in USERS:
             email = u["email"].lower()
             password_hash = bcrypt.hashpw(

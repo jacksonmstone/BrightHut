@@ -407,7 +407,7 @@ CREATE TABLE users (
   user_id            INT IDENTITY(1,1) PRIMARY KEY,
   email              NVARCHAR(200)  NOT NULL,
   password_hash      NVARCHAR(MAX)  NOT NULL,
-  role               NVARCHAR(20)   NOT NULL CHECK (role IN ('staff','donor')),
+  role               NVARCHAR(20)   NOT NULL CHECK (role IN ('admin','donor')),
   first_name         NVARCHAR(100)  NULL,
   last_name          NVARCHAR(100)  NULL,
   organization_name  NVARCHAR(200)  NULL,

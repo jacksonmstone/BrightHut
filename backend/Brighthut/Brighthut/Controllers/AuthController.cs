@@ -816,7 +816,7 @@ public class AuthController : ControllerBase
 
     private static bool IsTwoFactorEnrollmentExempt(string normalizedEmail)
     {
-        return normalizedEmail is "staff@brighthut.org" or "donor@brighthut.org";
+        return normalizedEmail is "admin@brighthut.org" or "donor@brighthut.org";
     }
 }
 

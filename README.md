@@ -40,11 +40,11 @@ If `JWT__KEY` is missing in production the API will **refuse to start** with a c
 
 | Variable | Description |
 |---|---|
-| `SEED_STAFF_PASSWORD` | Password for `staff@brighthut.org` |
+| `SEED_ADMIN_PASSWORD` | Password for `admin@brighthut.org` |
 | `SEED_DONOR_PASSWORD` | Password for `donor@brighthut.org` |
 
 ```bash
-export SEED_STAFF_PASSWORD="<strong password>"
+export SEED_ADMIN_PASSWORD="<strong password>"
 export SEED_DONOR_PASSWORD="<strong password>"
 python database/seed_users.py
 ```
