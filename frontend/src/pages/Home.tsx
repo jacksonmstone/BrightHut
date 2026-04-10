@@ -142,22 +142,11 @@ export default function Home() {
             <>
               <span className="hero-tag">BrightHut</span>
               <h1 className="hero-title">
-                Safe homes and healing for girls in the Philippines<br />
-                <span className="hero-accent">who have survived abuse and trafficking.</span>
+                Safe homes and healing for girls<br />
+                <span className="hero-accent">who have survived trafficking.</span>
               </h1>
               <p className="hero-lead">
-                We partner with in-country sanctuaries like Lighthouse Sanctuary—supporting shelter, counseling,
-                education, and reintegration—while giving staff and donors clear, privacy-safe tools to see how
-                help reaches real children.
-              </p>
-              <p className="hero-tagline">Empowering communities, one connection at a time.</p>
-              <p className="hero-trust">
-                Survivor privacy comes first: we never share identifying details publicly, and gifts are used for programs
-                you can read about in our{' '}
-                <Link className="hero-trust-link" to="/privacy">
-                  Privacy Policy
-                </Link>
-                .
+                Supporting shelter, counseling, and reintegration for girls in care across the Philippines.
               </p>
               <div className="hero-actions">
                 <button type="button" className="btn-primary" onClick={() => navigate('/#donate')}>
@@ -170,13 +159,6 @@ export default function Home() {
                   Our mission
                 </button>
               </div>
-              <p className="hero-account-hint">
-                New supporter?{' '}
-                <Link className="hero-account-link" to="/create-account">
-                  Create an account
-                </Link>{' '}
-                to track your impact — or give first with no login.
-              </p>
             </>
           )}
           {loggedIn && !isStaffLike && (

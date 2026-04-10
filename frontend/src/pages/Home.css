@@ -15,7 +15,6 @@
   border-bottom: 1px solid var(--border);
   position: relative;
   overflow: hidden;
-  min-height: 560px;
 }
 
 .hero::after {
@@ -33,9 +32,9 @@
 .hero-content {
   flex: 1 1 0;
   min-width: 0;
-  max-width: 580px;
+  max-width: 540px;
   z-index: 1;
-  padding: 80px 60px 80px 80px;
+  padding: 56px 48px 56px 72px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -57,11 +56,11 @@
 }
 
 .hero-title {
-  font-size: 52px;
+  font-size: 44px;
   font-weight: 750;
   line-height: 1.15;
   color: #fff;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
   letter-spacing: -0.8px;
   font-family: ui-serif, Georgia, 'Times New Roman', Times, serif;
   text-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
@@ -73,11 +72,11 @@
 }
 
 .hero-lead {
-  font-size: 17px;
-  color: rgba(255, 255, 255, 0.9);
-  line-height: 1.7;
-  margin-bottom: 14px;
-  max-width: 520px;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.6;
+  margin-bottom: 28px;
+  max-width: 480px;
 }
 
 .hero-tagline {
@@ -193,11 +192,11 @@
 }
 
 .hero-visual {
-  flex: 0 0 52%;
+  flex: 0 0 44%;
   position: relative;
   z-index: 1;
   overflow: hidden;
-  margin: 40px 50px 40px 0;
+  margin: 36px 44px 36px 0;
   border-radius: 60% 40% 30% 70% / 50% 60% 40% 55%;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
 }
