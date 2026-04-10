@@ -48,7 +48,38 @@ const DONATION_FIELDS: FieldDef[] = [
   { key: 'notes', label: 'Notes', type: 'textarea' },
 ]
 
-type FormState = { mode: 'add-supporter' | 'add-donation' | 'edit-supporter' | 'edit-donation'; record?: Row }
+const ALLOCATION_FIELDS: FieldDef[] = [
+  { key: 'donation_id', label: 'Donation ID', type: 'number', required: true },
+  { key: 'safehouse_id', label: 'Safehouse ID', type: 'number', required: true },
+  { key: 'allocation_date', label: 'Allocation Date', type: 'date', required: true },
+  { key: 'program_area', label: 'Program Area', type: 'text' },
+  { key: 'amount_allocated', label: 'Amount Allocated (PHP)', type: 'number', required: true },
+  { key: 'allocation_notes', label: 'Notes', type: 'textarea' },
+]
+
+const INKIND_FIELDS: FieldDef[] = [
+  { key: 'donation_id', label: 'Donation ID', type: 'number', required: true },
+  { key: 'item_name', label: 'Item Name', type: 'text', required: true },
+  { key: 'item_category', label: 'Category', type: 'text', required: true },
+  { key: 'quantity', label: 'Quantity', type: 'number', required: true },
+  { key: 'unit_of_measure', label: 'Unit', type: 'text' },
+  { key: 'estimated_unit_value', label: 'Estimated Unit Value (PHP)', type: 'number' },
+  { key: 'intended_use', label: 'Intended Use', type: 'text' },
+  { key: 'received_condition', label: 'Condition', type: 'select', options: ['New', 'Used-Good', 'Refurbished'] },
+]
+
+type FormState = {
+  mode:
+    | 'add-supporter'
+    | 'add-donation'
+    | 'add-allocation'
+    | 'add-inkind'
+    | 'edit-supporter'
+    | 'edit-donation'
+    | 'edit-allocation'
+    | 'edit-inkind'
+  record?: Row
+}
 
 function donorRowKey(tab: Tab, r: Row): string {
   switch (tab) {
@@ -221,12 +252,20 @@ export default function DonorsPortal() {
       await insertRow('supporters', d)
     } else if (formState.mode === 'add-donation') {
       await insertRow('donations', { ...d, currency_code: d.currency_code || 'PHP' })
+    } else if (formState.mode === 'add-allocation') {
+      await insertRow('donation_allocations', d)
+    } else if (formState.mode === 'add-inkind') {
+      await insertRow('in_kind_donation_items', d)
     } else if (formState.mode === 'edit-supporter' && formState.record) {
       console.log('[DonorsPortal] updating supporter id:', formState.record.supporter_id)
       await updateRow('supporters', Number(formState.record.supporter_id), d)
     } else if (formState.mode === 'edit-donation' && formState.record) {
       console.log('[DonorsPortal] updating donation id:', formState.record.donation_id)
       await updateRow('donations', Number(formState.record.donation_id), d)
+    } else if (formState.mode === 'edit-allocation' && formState.record) {
+      await updateRow('donation_allocations', Number(formState.record.allocation_id), d)
+    } else if (formState.mode === 'edit-inkind' && formState.record) {
+      await updateRow('in_kind_donation_items', Number(formState.record.item_id), d)
     }
     setRefreshKey(k => k + 1)
   }
@@ -338,6 +377,7 @@ export default function DonorsPortal() {
             <div className="donor-card-header">
               <span className="supporter-name">{String(r.program_area ?? '—')}</span>
               <span className="donor-date">{String(r.allocation_date ?? '—')}</span>
+              <button className="dp-edit-btn" onClick={() => setFormState({ mode: 'edit-allocation', record: r })}>Edit</button>
             </div>
             <div className="donor-card-body">
               <div className="donor-field"><span className="field-label">Amount</span><span>{formatUsd(phpToUsd(Number(r.amount_allocated ?? 0)))}</span></div>
@@ -353,6 +393,7 @@ export default function DonorsPortal() {
             <div className="donor-card-header">
               <span className="supporter-name">{String(r.item_name ?? '—')}</span>
               <span className={`type-badge type-${String(r.received_condition ?? '').toLowerCase()}`}>{String(r.received_condition ?? '—')}</span>
+              <button className="dp-edit-btn" onClick={() => setFormState({ mode: 'edit-inkind', record: r })}>Edit</button>
             </div>
             <div className="donor-card-body">
               <div className="donor-field"><span className="field-label">Category</span><span>{String(r.item_category ?? '—')}</span></div>
@@ -369,7 +410,11 @@ export default function DonorsPortal() {
     formState.mode === 'add-supporter' ? { title: 'Add Supporter', fields: SUPPORTER_FIELDS, initialData: undefined } :
     formState.mode === 'edit-supporter' ? { title: 'Edit Supporter', fields: SUPPORTER_FIELDS, initialData: formState.record } :
     formState.mode === 'add-donation' ? { title: 'Add Donation', fields: DONATION_FIELDS, initialData: undefined } :
-    { title: 'Edit Donation', fields: DONATION_FIELDS, initialData: formState.record }
+    formState.mode === 'edit-donation' ? { title: 'Edit Donation', fields: DONATION_FIELDS, initialData: formState.record } :
+    formState.mode === 'add-allocation' ? { title: 'Add Allocation', fields: ALLOCATION_FIELDS, initialData: undefined } :
+    formState.mode === 'edit-allocation' ? { title: 'Edit Allocation', fields: ALLOCATION_FIELDS, initialData: formState.record } :
+    formState.mode === 'add-inkind' ? { title: 'Add In-Kind Item', fields: INKIND_FIELDS, initialData: undefined } :
+    { title: 'Edit In-Kind Item', fields: INKIND_FIELDS, initialData: formState.record }
   ) : null
 
   return (
@@ -458,6 +503,12 @@ export default function DonorsPortal() {
         )}
         {tab === 'donations' && (
           <button className="dp-add-btn" onClick={() => setFormState({ mode: 'add-donation' })}>+ Add Donation</button>
+        )}
+        {tab === 'allocations' && (
+          <button className="dp-add-btn" onClick={() => setFormState({ mode: 'add-allocation' })}>+ Add Allocation</button>
+        )}
+        {tab === 'inkind' && (
+          <button className="dp-add-btn" onClick={() => setFormState({ mode: 'add-inkind' })}>+ Add In-Kind Item</button>
         )}
       </div>
 
