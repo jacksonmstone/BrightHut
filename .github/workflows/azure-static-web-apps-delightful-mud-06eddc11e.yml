@@ -29,6 +29,9 @@ jobs:
           app_location: "./frontend"
           api_location: ""
           output_location: "dist"
+        env:
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
