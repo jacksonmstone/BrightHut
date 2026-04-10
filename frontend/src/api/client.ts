@@ -4,8 +4,6 @@ const CONFIGURED_BASE_URL = import.meta.env.VITE_API_BASE_URL as string | undefi
 const DEFAULT_CLOUD_BASE_URL =
   'https://brighthut-befxhqfdabcpfscu.centralus-01.azurewebsites.net'
 
-const LOCAL_DEV_BASE_URLS = ['http://localhost:5287', 'https://localhost:7287'] as const
-
 function getCandidateBaseUrls(): string[] {
   const configured = CONFIGURED_BASE_URL?.trim()
   const candidates = new Set<string>()
@@ -13,17 +11,6 @@ function getCandidateBaseUrls(): string[] {
   // Explicit override first — set VITE_API_BASE_URL=http://localhost:5287 in
   // .env.local if you want to develop against a locally running backend.
   if (configured) candidates.add(configured)
-
-  // If the frontend is running locally, prefer local backend endpoints.
-  // This avoids accidentally calling cloud APIs during local development.
-  if (typeof window !== 'undefined') {
-    const host = window.location.hostname.toLowerCase()
-    if (host === 'localhost' || host === '127.0.0.1') {
-      for (const localUrl of LOCAL_DEV_BASE_URLS) {
-        candidates.add(localUrl)
-      }
-    }
-  }
 
   // Default: always use the cloud API (no noisy proxy errors when backend isn't running)
   candidates.add(DEFAULT_CLOUD_BASE_URL)

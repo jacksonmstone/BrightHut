@@ -380,7 +380,7 @@ CREATE TABLE IF NOT EXISTS users (
   user_id INTEGER PRIMARY KEY AUTOINCREMENT,
   email TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
-  role TEXT NOT NULL CHECK(role IN ('admin', 'donor')),
+  role TEXT NOT NULL CHECK(role IN ('staff', 'donor')),
   first_name TEXT,
   last_name TEXT,
   organization_name TEXT,
