@@ -107,6 +107,9 @@
   gap: 1rem;
 }
 
+@media (max-width: 700px) { .donors-grid { grid-template-columns: 1fr; } }
+@media (min-width: 701px) and (max-width: 1000px) { .donors-grid { grid-template-columns: repeat(2, 1fr); } }
+
 .load-more-wrap { display: flex; justify-content: center; padding: 1rem 0; }
 
 .load-more-btn {

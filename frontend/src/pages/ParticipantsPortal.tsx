@@ -1,13 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import PaginationBar from '../components/PaginationBar'
 import {
   getResidents,
-  getProcessRecordings,
-  getHomeVisitations,
-  getEducationRecords,
-  getHealthRecords,
-  getInterventionPlans,
   getIncidentReports,
   getResidentReadinessScore,
   getInterventionEffectiveness,
@@ -17,49 +12,28 @@ import { getSafehouses } from '../api/safehouses'
 import { insertRow } from '../api/tables'
 import FormModal from '../components/FormModal'
 import type { FieldDef } from '../components/FormModal'
-import { deleteSupporter } from '../api/supporters'
 import './ParticipantsPortal.css'
 
 type Row = Record<string, unknown>
-type Tab = 'residents' | 'process' | 'visitations' | 'education' | 'health' | 'interventions' | 'incidents'
+type Tab = 'residents' | 'incidents'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'residents', label: 'Residents' },
-  { id: 'process', label: 'Process Recordings' },
-  { id: 'visitations', label: 'Home Visitations' },
-  { id: 'education', label: 'Education' },
-  { id: 'health', label: 'Health' },
-  { id: 'interventions', label: 'Intervention Plans' },
-  { id: 'incidents', label: 'Incidents' },
+  { id: 'incidents',  label: 'Incidents'  },
 ]
 
 function participantRowKey(tab: Tab, r: Row): string {
   switch (tab) {
-    case 'residents':
-      return `res-${String(r.resident_id ?? '')}`
-    case 'process':
-      return `pr-${String(r.recording_id ?? '')}`
-    case 'visitations':
-      return `hv-${String(r.visitation_id ?? '')}`
-    case 'education':
-      return `ed-${String(r.education_record_id ?? '')}`
-    case 'health':
-      return `hl-${String(r.health_record_id ?? '')}`
-    case 'interventions':
-      return `ip-${String(r.plan_id ?? '')}`
-    case 'incidents':
-      return `inc-${String(r.incident_id ?? '')}`
-    default:
-      return JSON.stringify(r)
+    case 'residents': return `res-${String(r.resident_id ?? '')}`
+    case 'incidents':  return `inc-${String(r.incident_id ?? '')}`
+    default:           return JSON.stringify(r)
   }
 }
 
 export default function ParticipantsPortal() {
   const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('residents')
-  const [data, setData] = useState<Record<Tab, Row[]>>({
-    residents: [], process: [], visitations: [], education: [], health: [], interventions: [], incidents: [],
-  })
+  const [data, setData] = useState<Record<Tab, Row[]>>({ residents: [], incidents: [] })
   const [safehouses, setSafehouses] = useState<Row[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -73,53 +47,66 @@ export default function ParticipantsPortal() {
   const [filterIntervention, setFilterIntervention] = useState('')
   const [showAddResident, setShowAddResident] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
-  const [deleteSupporterId, setDeleteSupporterId] = useState('')
-  const [deleteMessage, setDeleteMessage] = useState<string | null>(null)
-  const [deleting, setDeleting] = useState(false)
   const [readinessScores, setReadinessScores] = useState<Map<number, ReadinessScore>>(new Map())
   const [interventionScores, setInterventionScores] = useState<Map<number, InterventionEffectiveness>>(new Map())
 
   useEffect(() => {
-    Promise.all([
-      getResidents(),
-      getProcessRecordings(),
-      getHomeVisitations(),
-      getEducationRecords(),
-      getHealthRecords(),
-      getInterventionPlans(),
-      getIncidentReports(),
-      getSafehouses(),
-    ])
-      .then(([residents, process, visitations, education, health, interventions, incidents, sh]) => {
-        setData({ residents, process, visitations, education, health, interventions, incidents })
+    Promise.all([getResidents(), getIncidentReports(), getSafehouses()])
+      .then(([residents, incidents, sh]) => {
+        setData({ residents, incidents })
         setSafehouses(sh)
 
-        // Load readiness scores for active residents in parallel.
+        // Load ML scores for active residents in parallel.
         // Silently ignored if the user lacks staff/admin role.
         const activeIds = residents
           .filter(r => r.case_status === 'Active')
           .map(r => Number(r.resident_id))
+
         Promise.allSettled(activeIds.map(id => getResidentReadinessScore(id)))
           .then(results => {
             const map = new Map<number, ReadinessScore>()
-            results.forEach((r, i) => {
-              if (r.status === 'fulfilled') map.set(activeIds[i], r.value)
-            })
+            results.forEach((r, i) => { if (r.status === 'fulfilled') map.set(activeIds[i], r.value) })
             setReadinessScores(map)
           })
 
         Promise.allSettled(activeIds.map(id => getInterventionEffectiveness(id)))
           .then(results => {
             const map = new Map<number, InterventionEffectiveness>()
-            results.forEach((r, i) => {
-              if (r.status === 'fulfilled') map.set(activeIds[i], r.value)
-            })
+            results.forEach((r, i) => { if (r.status === 'fulfilled') map.set(activeIds[i], r.value) })
             setInterventionScores(map)
           })
       })
       .catch(() => setError('Failed to load participant data.'))
       .finally(() => setLoading(false))
   }, [refreshKey])
+
+  // ── Incidents analytics ───────────────────────────────────────────────────
+  const incidentsByType = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const inc of data.incidents) {
+      const t = String(inc.incident_type ?? 'Unknown')
+      map[t] = (map[t] ?? 0) + 1
+    }
+    return Object.entries(map).sort((a, b) => b[1] - a[1])
+  }, [data.incidents])
+
+  const incidentsBySeverity = useMemo(() => {
+    const counts = { Low: 0, Medium: 0, High: 0 }
+    for (const inc of data.incidents) {
+      const s = String(inc.severity ?? '')
+      if (s === 'Low' || s === 'Medium' || s === 'High') counts[s]++
+    }
+    return counts
+  }, [data.incidents])
+
+  const resolutionRate = useMemo(() => {
+    if (data.incidents.length === 0) return 0
+    const resolved = data.incidents.filter(i => i.resolved).length
+    return Math.round((resolved / data.incidents.length) * 100)
+  }, [data.incidents])
+
+  const maxTypeCount = Math.max(1, ...incidentsByType.map(([, v]) => v))
+  const maxSeverityCount = Math.max(1, ...Object.values(incidentsBySeverity))
 
   const residentFields: FieldDef[] = [
     { key: 'case_control_no', label: 'Case Control No', type: 'text', required: true },
@@ -159,19 +146,17 @@ export default function ParticipantsPortal() {
   const currentPage = Math.min(page, totalPages)
   const pagedRows = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
-  useEffect(() => {
-    setPage(1)
-  }, [tab, search, filterStatus, filterCategory, filterSafehouse, filterReadiness, filterIntervention])
+  useEffect(() => { setPage(1) }, [tab, search, filterStatus, filterCategory, filterSafehouse, filterReadiness, filterIntervention])
+  useEffect(() => { setPage((p) => Math.min(p, totalPages)) }, [totalPages])
 
-  useEffect(() => {
-    setPage((p) => Math.min(p, totalPages))
-  }, [totalPages])
-
-  const resetFilters = () => { setFilterStatus(''); setFilterCategory(''); setFilterSafehouse(''); setFilterReadiness(''); setFilterIntervention('') }
+  const resetFilters = () => {
+    setFilterStatus(''); setFilterCategory(''); setFilterSafehouse('')
+    setFilterReadiness(''); setFilterIntervention('')
+  }
 
   const renderCard = (r: Row, rk: string) => {
     switch (tab) {
-      case 'residents': {
+      case 'residents':
         return (
           <button
             key={rk}
@@ -196,88 +181,6 @@ export default function ParticipantsPortal() {
             <div className="p-card-footer">View full record →</div>
           </button>
         )
-      }
-      case 'process':
-        return (
-          <div key={rk} className="p-card">
-            <div className="p-card-header">
-              <span className="p-code">{String(r.session_date ?? '—')}</span>
-              <span className="meta-tag">{String(r.session_type ?? '—')}</span>
-            </div>
-            <div className="p-card-body">
-              <div className="p-field"><span className="field-label">Social Worker</span><span>{String(r.social_worker ?? '—')}</span></div>
-              <div className="p-field"><span className="field-label">Duration</span><span>{String(r.session_duration_minutes ?? '—')} min</span></div>
-              <div className="p-field"><span className="field-label">Emotional Start</span><span>{String(r.emotional_state_observed ?? '—')}</span></div>
-              <div className="p-field"><span className="field-label">Emotional End</span><span>{String(r.emotional_state_end ?? '—')}</span></div>
-              <div className="p-field"><span className="field-label">Progress</span><span>{r.progress_noted ? 'Yes' : 'No'}</span></div>
-              <div className="p-field"><span className="field-label">Concerns</span><span>{r.concerns_flagged ? 'Yes' : 'No'}</span></div>
-            </div>
-          </div>
-        )
-      case 'visitations':
-        return (
-          <div key={rk} className="p-card">
-            <div className="p-card-header">
-              <span className="p-code">{String(r.visit_date ?? '—')}</span>
-              <span className="meta-tag">{String(r.visit_type ?? '—')}</span>
-            </div>
-            <div className="p-card-body">
-              <div className="p-field"><span className="field-label">Social Worker</span><span>{String(r.social_worker ?? '—')}</span></div>
-              <div className="p-field"><span className="field-label">Cooperation</span><span>{String(r.family_cooperation_level ?? '—')}</span></div>
-              <div className="p-field"><span className="field-label">Safety Concerns</span><span>{r.safety_concerns_noted ? 'Yes' : 'No'}</span></div>
-              <div className="p-field"><span className="field-label">Outcome</span><span>{String(r.visit_outcome ?? '—')}</span></div>
-              <div className="p-field"><span className="field-label">Follow-up</span><span>{r.follow_up_needed ? 'Yes' : 'No'}</span></div>
-            </div>
-          </div>
-        )
-      case 'education':
-        return (
-          <div key={rk} className="p-card">
-            <div className="p-card-header">
-              <span className="p-code">{String(r.record_date ?? '—')}</span>
-              <span className="meta-tag">{String(r.program_name ?? r.education_level ?? '—')}</span>
-            </div>
-            <div className="p-card-body">
-              <div className="p-field"><span className="field-label">School</span><span>{String(r.school_name ?? '—')}</span></div>
-              <div className="p-field"><span className="field-label">Level</span><span>{String(r.education_level ?? '—')}</span></div>
-              <div className="p-field"><span className="field-label">Attendance</span><span>{String(r.attendance_status ?? r.enrollment_status ?? '—')}</span></div>
-              <div className="p-field"><span className="field-label">Progress</span><span>{Number(r.progress_percent ?? 0).toFixed(1)}%</span></div>
-              <div className="p-field"><span className="field-label">Status</span><span>{String(r.completion_status ?? '—')}</span></div>
-            </div>
-          </div>
-        )
-      case 'health':
-        return (
-          <div key={rk} className="p-card">
-            <div className="p-card-header">
-              <span className="p-code">{String(r.record_date ?? '—')}</span>
-              <span className="meta-tag">BMI: {String(r.bmi ?? '—')}</span>
-            </div>
-            <div className="p-card-body">
-              <div className="p-field"><span className="field-label">Weight</span><span>{String(r.weight_kg ?? '—')} kg</span></div>
-              <div className="p-field"><span className="field-label">Height</span><span>{String(r.height_cm ?? '—')} cm</span></div>
-              <div className="p-field"><span className="field-label">Nutrition</span><span>{String(r.nutrition_score ?? '—')}</span></div>
-              <div className="p-field"><span className="field-label">Sleep</span><span>{String(r.sleep_quality_score ?? r.sleep_score ?? '—')}</span></div>
-              <div className="p-field"><span className="field-label">Energy</span><span>{String(r.energy_level_score ?? r.energy_score ?? '—')}</span></div>
-              <div className="p-field"><span className="field-label">General Health</span><span>{String(r.general_health_score ?? '—')}</span></div>
-            </div>
-          </div>
-        )
-      case 'interventions':
-        return (
-          <div key={rk} className="p-card">
-            <div className="p-card-header">
-              <span className="p-code">{String(r.plan_category ?? '—')}</span>
-              <span className={`status-badge status-${String(r.status ?? '').toLowerCase().replace(' ', '-')}`}>{String(r.status ?? '—')}</span>
-            </div>
-            <div className="p-card-body">
-              <div className="p-field"><span className="field-label">Description</span><span>{String(r.plan_description ?? '—').slice(0, 80)}</span></div>
-              <div className="p-field"><span className="field-label">Services</span><span>{String(r.services_provided ?? '—')}</span></div>
-              <div className="p-field"><span className="field-label">Target Date</span><span>{String(r.target_date ?? '—')}</span></div>
-              <div className="p-field"><span className="field-label">Case Conference</span><span>{String(r.case_conference_date ?? '—')}</span></div>
-            </div>
-          </div>
-        )
       case 'incidents':
         return (
           <div key={rk} className="p-card">
@@ -296,29 +199,6 @@ export default function ParticipantsPortal() {
     }
   }
 
-  const handleDeleteSupporter = async () => {
-    const id = Number(deleteSupporterId)
-    if (!Number.isInteger(id) || id <= 0) {
-      setDeleteMessage('Enter a valid supporter ID (positive integer).')
-      return
-    }
-
-    const confirmed = window.confirm(`Delete supporter #${id}? This action cannot be undone.`)
-    if (!confirmed) return
-
-    setDeleting(true)
-    setDeleteMessage(null)
-    try {
-      await deleteSupporter(id)
-      setDeleteMessage(`Supporter #${id} deleted.`)
-      setDeleteSupporterId('')
-    } catch (err: unknown) {
-      setDeleteMessage(err instanceof Error ? err.message : 'Delete failed.')
-    } finally {
-      setDeleting(false)
-    }
-  }
-
   return (
     <main className="participants-page">
       {showAddResident && (
@@ -334,25 +214,8 @@ export default function ParticipantsPortal() {
         <button className="pp-back-btn" onClick={() => navigate('/')}>← Back</button>
         <h1>Caseload inventory</h1>
         <p className="subtitle">
-            Resident records, process notes, visitations, and plans — filter by status, safehouse, and category; open a
-            resident for full detail.
+          Resident records and incident reports — filter by status, safehouse, and category; open a resident for full detail.
         </p>
-      </div>
-
-      <div className="participants-controls">
-        <input
-          className="search-input"
-          type="number"
-          min={1}
-          step={1}
-          placeholder="Supporter ID to delete (staff/admin demo)"
-          value={deleteSupporterId}
-          onChange={(e) => setDeleteSupporterId(e.target.value)}
-        />
-        <button className="tab-btn" onClick={() => void handleDeleteSupporter()} disabled={deleting}>
-          {deleting ? 'Deleting…' : 'Delete supporter'}
-        </button>
-        {deleteMessage ? <span className="count">{deleteMessage}</span> : null}
       </div>
 
       <div className="tab-scroll">
@@ -418,6 +281,59 @@ export default function ParticipantsPortal() {
 
       {!loading && !error && (
         <>
+          {/* Incidents analytics panel */}
+          {tab === 'incidents' && data.incidents.length > 0 && (
+            <div className="pp-incident-analytics">
+              <div className="pp-incident-analytics-kpis">
+                <div className="pp-incident-kpi">
+                  <span className="pp-incident-kpi-value">{data.incidents.length}</span>
+                  <span className="pp-incident-kpi-label">Total incidents</span>
+                </div>
+                <div className="pp-incident-kpi">
+                  <span className="pp-incident-kpi-value">{resolutionRate}%</span>
+                  <span className="pp-incident-kpi-label">Resolved</span>
+                </div>
+                <div className="pp-incident-kpi">
+                  <span className="pp-incident-kpi-value">{data.incidents.filter(i => !i.resolved).length}</span>
+                  <span className="pp-incident-kpi-label">Unresolved</span>
+                </div>
+              </div>
+              <div className="pp-incident-charts">
+                <div>
+                  <p className="pp-incident-chart-title">By Type</p>
+                  <div className="pp-bars">
+                    {incidentsByType.map(([type, count]) => (
+                      <div key={type} className="pp-bar-row">
+                        <span className="pp-bar-label">{type}</span>
+                        <div className="pp-bar-track">
+                          <div className="pp-bar-fill" style={{ width: `${(count / maxTypeCount) * 100}%` }} />
+                        </div>
+                        <span className="pp-bar-count">{count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="pp-incident-chart-title">By Severity</p>
+                  <div className="pp-bars">
+                    {(['Low', 'Medium', 'High'] as const).map(sev => (
+                      <div key={sev} className="pp-bar-row">
+                        <span className="pp-bar-label">{sev}</span>
+                        <div className="pp-bar-track">
+                          <div
+                            className={`pp-bar-fill pp-bar-fill--sev-${sev.toLowerCase()}`}
+                            style={{ width: `${(incidentsBySeverity[sev] / maxSeverityCount) * 100}%` }}
+                          />
+                        </div>
+                        <span className="pp-bar-count">{incidentsBySeverity[sev]}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="residents-grid" aria-describedby="participants-pagination-nav">
             {pagedRows.map((r) => renderCard(r, participantRowKey(tab, r)))}
             {filtered.length === 0 && <p className="state-msg">No records match your search.</p>}
@@ -428,10 +344,7 @@ export default function ParticipantsPortal() {
               pageSize={pageSize}
               totalItems={filtered.length}
               onPageChange={setPage}
-              onPageSizeChange={(n) => {
-                setPageSize(n)
-                setPage(1)
-              }}
+              onPageSizeChange={(n) => { setPageSize(n); setPage(1) }}
               labelId="participants-pagination"
             />
           )}

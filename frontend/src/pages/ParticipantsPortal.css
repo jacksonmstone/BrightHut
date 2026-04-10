@@ -253,3 +253,84 @@
 .readiness-badge--high     { background: #d1fae5; color: #065f46; }
 .readiness-badge--moderate { background: #fef3c7; color: #92400e; }
 .readiness-badge--low      { background: #fee2e2; color: #991b1b; }
+
+/* ── Incidents analytics panel ───────────────────────────────────────────── */
+
+.pp-incident-analytics {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pp-incident-analytics-kpis {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.pp-incident-kpi { display: flex; flex-direction: column; gap: 2px; }
+.pp-incident-kpi-value { font-size: 1.3rem; font-weight: 700; color: var(--primary-dark); }
+.pp-incident-kpi-label { font-size: 0.78rem; color: var(--text-muted); }
+
+.pp-incident-charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.pp-incident-chart-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin: 0 0 0.5rem;
+}
+
+@media (max-width: 600px) { .pp-incident-charts { grid-template-columns: 1fr; } }
+
+.pp-bars { display: flex; flex-direction: column; gap: 8px; }
+
+.pp-bar-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 40px;
+  align-items: center;
+  gap: 10px;
+}
+
+.pp-bar-label {
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pp-bar-track {
+  background: var(--border);
+  border-radius: 999px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.pp-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--primary);
+  transition: width 0.3s ease;
+  min-width: 2px;
+}
+
+.pp-bar-count {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.pp-bar-fill--sev-low    { background: #10b981; }
+.pp-bar-fill--sev-medium { background: #f59e0b; }
+.pp-bar-fill--sev-high   { background: #ef4444; }
